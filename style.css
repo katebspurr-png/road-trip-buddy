@@ -192,6 +192,8 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 }
 .stepper b { color: var(--text); font-size: 0.95rem; }
 .cat-summary { width: 100%; font-size: 0.8rem; color: var(--muted); }
+.fuel-inputs input[type="number"] { flex: 1; width: auto !important; min-width: 0; }
+.fuel-card { gap: 6px 24px; }
 .exp-amount { font-weight: 800; white-space: nowrap; }
 
 /* ---- travelers & settle-up ---- */

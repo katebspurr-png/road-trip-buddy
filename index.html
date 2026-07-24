@@ -69,6 +69,12 @@
         <div id="exp-by-cat" class="cat-summary"></div>
         <div id="settle-lines" class="settle-lines"></div>
       </div>
+      <div id="fuel-card" class="totals-card fuel-card" hidden>
+        <div class="total-split"><span id="fuel-econ">—</span><label id="fuel-econ-label">L/100 km</label></div>
+        <div class="total-split"><span id="fuel-costkm">—</span><label>per km</label></div>
+        <div class="total-split"><span id="fuel-dist">—</span><label>driven</label></div>
+        <div class="total-split"><span id="fuel-ppl">—</span><label>avg per litre</label></div>
+      </div>
       <div class="travelers-card">
         <div class="travelers-head">👥 Travelers</div>
         <p id="traveler-empty" class="travelers-hint">Add at least two names to track who paid what and settle up at the end.</p>
@@ -82,6 +88,10 @@
         <div class="row">
           <input id="exp-amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00" required>
           <div id="exp-cats" class="chip-row" role="radiogroup" aria-label="category"></div>
+        </div>
+        <div id="exp-fuel-row" class="row fuel-inputs" hidden>
+          <input id="exp-odo" type="number" inputmode="decimal" step="1" min="0" placeholder="Odometer (km)">
+          <input id="exp-litres" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Litres">
         </div>
         <input id="exp-note" type="text" placeholder="Note (optional — Buc-ee's snack raid)" maxlength="80" autocomplete="off">
         <div id="exp-paidby" class="chip-row paidby-row" hidden></div>
