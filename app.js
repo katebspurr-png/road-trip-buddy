@@ -64,47 +64,104 @@
   })();
 
   const TRIVIA = [
-    ["What's the capital of Canada?", "Ottawa"],
-    ["How many time zones does Canada span?", "Six"],
-    ["Which province is Halifax in?", "Nova Scotia (trick question for this car?)"],
-    ["What's the smallest Canadian province?", "Prince Edward Island"],
-    ["How many provinces does Canada have?", "10 (plus 3 territories)"],
-    ["What's the national animal of Canada?", "The beaver"],
-    ["Niagara Falls sits on the border of which two countries?", "Canada and the USA"],
-    ["Which US state is closest to Nova Scotia?", "Maine"],
-    ["Which ocean is Nova Scotia on?", "The Atlantic"],
-    ["How many states does the USA have?", "50"],
-    ["What's the capital of the USA?", "Washington, D.C."],
-    ["Which US state is the Grand Canyon in?", "Arizona"],
-    ["What's the biggest country in the world by area?", "Russia"],
-    ["What side of the road do they drive on in the UK?", "The left"],
-    ["Roughly how many kilometres are in a mile?", "1.6"],
-    ["What does GPS stand for?", "Global Positioning System"],
-    ["What does a red octagon road sign mean?", "Stop"],
-    ["How many wheels does an \"18-wheeler\" have?", "18"],
-    ["What animal is on the Porsche logo?", "A horse"],
-    ["What company makes the Mustang?", "Ford"],
-    ["What's the fastest land animal?", "The cheetah"],
-    ["What's the largest animal to ever live?", "The blue whale"],
-    ["What's the tallest animal?", "The giraffe"],
-    ["What's the largest ocean?", "The Pacific"],
-    ["What's the longest river in the world?", "The Nile (by most measurements)"],
-    ["What's the tallest mountain on Earth?", "Mount Everest"],
-    ["What's the world's largest desert?", "Antarctica — deserts are about dryness, not sand"],
-    ["Which planet is closest to the sun?", "Mercury"],
-    ["Which planet is the hottest?", "Venus"],
-    ["Which planet is famous for its rings?", "Saturn"],
-    ["How many continents are there?", "Seven"],
-    ["How many minutes are in a full day?", "1,440"],
-    ["What fruit do raisins come from?", "Grapes"],
-    ["Which country invented pizza?", "Italy"],
-    ["Who painted the Mona Lisa?", "Leonardo da Vinci"],
-    ["What does the H in H₂O stand for?", "Hydrogen"],
-    ["How many strings does a standard guitar have?", "Six"],
-    ["What's the currency of Japan?", "The yen"],
-    ["Which board game features Boardwalk?", "Monopoly"],
-    ["What's the loudest animal on Earth?", "The sperm whale (louder than a jet engine)"],
+    // 🍁 Canada
+    { c: "🍁 Canada", q: "What's the capital of Canada?", a: "Ottawa" },
+    { c: "🍁 Canada", q: "How many provinces does Canada have?", a: "10 (plus 3 territories)" },
+    { c: "🍁 Canada", q: "Name Canada's three territories.", a: "Yukon, Northwest Territories, and Nunavut" },
+    { c: "🍁 Canada", q: "What's the smallest Canadian province?", a: "Prince Edward Island" },
+    { c: "🍁 Canada", q: "Which province is Halifax in?", a: "Nova Scotia (trick question for this car?)" },
+    { c: "🍁 Canada", q: "How many time zones does Canada span?", a: "Six" },
+    { c: "🍁 Canada", q: "What's the national animal of Canada?", a: "The beaver" },
+    { c: "🍁 Canada", q: "What bird is on the Canadian $1 coin?", a: "A loon — hence \"loonie\"" },
+    { c: "🍁 Canada", q: "What are Canada's two national sports?", a: "Hockey (winter) and lacrosse (summer)" },
+    { c: "🍁 Canada", q: "Roughly how long is the Trans-Canada Highway?", a: "About 7,800 km — one of the longest national highways on Earth" },
+    { c: "🍁 Canada", q: "The CN Tower is in which city?", a: "Toronto" },
+    { c: "🍁 Canada", q: "The Bay of Fundy is famous for what?", a: "The highest tides in the world" },
+    { c: "🍁 Canada", q: "Anne of Green Gables is set in which province?", a: "Prince Edward Island" },
+    { c: "🍁 Canada", q: "Niagara Falls sits on the border of which two countries?", a: "Canada and the USA" },
+    { c: "🍁 Canada", q: "Peggy's Cove is famous for what?", a: "Its lighthouse — one of the most photographed in the world" },
+    // 🌍 Geography
+    { c: "🌍 Geography", q: "What's the biggest country in the world by area?", a: "Russia" },
+    { c: "🌍 Geography", q: "What's the largest ocean?", a: "The Pacific" },
+    { c: "🌍 Geography", q: "What's the longest river in the world?", a: "The Nile (by most measurements)" },
+    { c: "🌍 Geography", q: "What's the tallest mountain on Earth?", a: "Mount Everest" },
+    { c: "🌍 Geography", q: "What's the world's largest desert?", a: "Antarctica — deserts are about dryness, not sand" },
+    { c: "🌍 Geography", q: "How many continents are there?", a: "Seven" },
+    { c: "🌍 Geography", q: "How many states does the USA have?", a: "50" },
+    { c: "🌍 Geography", q: "What's the capital of the USA?", a: "Washington, D.C." },
+    { c: "🌍 Geography", q: "Which US state is the Grand Canyon in?", a: "Arizona" },
+    { c: "🌍 Geography", q: "Which US state is closest to Nova Scotia?", a: "Maine" },
+    { c: "🌍 Geography", q: "Which country has the most people?", a: "India (it passed China in 2023)" },
+    { c: "🌍 Geography", q: "What's the smallest country in the world?", a: "Vatican City" },
+    { c: "🌍 Geography", q: "Which country has the most islands?", a: "Sweden — over 260,000" },
+    { c: "🌍 Geography", q: "What's the capital of Australia?", a: "Canberra — not Sydney" },
+    { c: "🌍 Geography", q: "Which two countries share the world's longest border?", a: "Canada and the USA" },
+    // 🚗 Cars & Roads
+    { c: "🚗 Cars & Roads", q: "What animal is on the Porsche logo?", a: "A horse" },
+    { c: "🚗 Cars & Roads", q: "What animal is on the Lamborghini logo?", a: "A bull" },
+    { c: "🚗 Cars & Roads", q: "What company makes the Mustang?", a: "Ford" },
+    { c: "🚗 Cars & Roads", q: "How many wheels does an \"18-wheeler\" have?", a: "18" },
+    { c: "🚗 Cars & Roads", q: "What does a red octagon road sign mean?", a: "Stop" },
+    { c: "🚗 Cars & Roads", q: "Roughly how many kilometres are in a mile?", a: "1.6" },
+    { c: "🚗 Cars & Roads", q: "What does GPS stand for?", a: "Global Positioning System" },
+    { c: "🚗 Cars & Roads", q: "What side of the road do they drive on in the UK?", a: "The left" },
+    { c: "🚗 Cars & Roads", q: "What does the H in HOV lane stand for?", a: "High — High-Occupancy Vehicle" },
+    { c: "🚗 Cars & Roads", q: "What was the first mass-produced car?", a: "The Ford Model T" },
+    { c: "🚗 Cars & Roads", q: "Which country's highways famously have stretches with no speed limit?", a: "Germany — the Autobahn" },
+    { c: "🚗 Cars & Roads", q: "What colour were North American stop signs before the 1950s?", a: "Yellow — red paint didn't last outdoors until then" },
+    { c: "🚗 Cars & Roads", q: "What does VW stand for?", a: "Volkswagen — \"people's car\" in German" },
+    { c: "🚗 Cars & Roads", q: "What's the name of the Rolls-Royce hood ornament?", a: "The Spirit of Ecstasy" },
+    { c: "🚗 Cars & Roads", q: "Route 66 connected Chicago to which city?", a: "Los Angeles (Santa Monica)" },
+    // 🔬 Science & Nature
+    { c: "🔬 Science & Nature", q: "Which planet is closest to the sun?", a: "Mercury" },
+    { c: "🔬 Science & Nature", q: "Which planet is the hottest?", a: "Venus" },
+    { c: "🔬 Science & Nature", q: "Which planet is famous for its rings?", a: "Saturn" },
+    { c: "🔬 Science & Nature", q: "What does the H in H₂O stand for?", a: "Hydrogen" },
+    { c: "🔬 Science & Nature", q: "What's the fastest land animal?", a: "The cheetah" },
+    { c: "🔬 Science & Nature", q: "What's the largest animal to ever live?", a: "The blue whale" },
+    { c: "🔬 Science & Nature", q: "What's the tallest animal?", a: "The giraffe" },
+    { c: "🔬 Science & Nature", q: "What's the loudest animal on Earth?", a: "The sperm whale (louder than a jet engine)" },
+    { c: "🔬 Science & Nature", q: "How many minutes are in a full day?", a: "1,440" },
+    { c: "🔬 Science & Nature", q: "How many hearts does an octopus have?", a: "Three" },
+    { c: "🔬 Science & Nature", q: "What gas do plants breathe in?", a: "Carbon dioxide (CO₂)" },
+    { c: "🔬 Science & Nature", q: "How many bones are in an adult human body?", a: "206" },
+    { c: "🔬 Science & Nature", q: "What's the only mammal that can truly fly?", a: "The bat" },
+    { c: "🔬 Science & Nature", q: "What's a group of crows called?", a: "A murder" },
+    { c: "🔬 Science & Nature", q: "Roughly how fast does light travel?", a: "300,000 km per second" },
+    // 🎬 Pop Culture
+    { c: "🎬 Pop Culture", q: "Who painted the Mona Lisa?", a: "Leonardo da Vinci" },
+    { c: "🎬 Pop Culture", q: "In Monopoly, what are the two most expensive properties?", a: "Boardwalk and Park Place" },
+    { c: "🎬 Pop Culture", q: "How many strings does a standard guitar have?", a: "Six" },
+    { c: "🎬 Pop Culture", q: "How many keys does a full piano have?", a: "88" },
+    { c: "🎬 Pop Culture", q: "How many houses is Hogwarts divided into?", a: "Four" },
+    { c: "🎬 Pop Culture", q: "Who lives in a pineapple under the sea?", a: "SpongeBob SquarePants" },
+    { c: "🎬 Pop Culture", q: "The Beatles came from which city?", a: "Liverpool" },
+    { c: "🎬 Pop Culture", q: "What's the highest-grossing film of all time?", a: "Avatar" },
+    { c: "🎬 Pop Culture", q: "What's the name of Mickey Mouse's dog?", a: "Pluto" },
+    { c: "🎬 Pop Culture", q: "Complete the line: \"May the ___ be with you.\"", a: "Force" },
+    { c: "🎬 Pop Culture", q: "Which superhero comes from the planet Krypton?", a: "Superman" },
+    { c: "🎬 Pop Culture", q: "The Simpsons live in which town?", a: "Springfield" },
+    { c: "🎬 Pop Culture", q: "What board game is played with letter tiles?", a: "Scrabble" },
+    { c: "🎬 Pop Culture", q: "What's James Bond's code number?", a: "007" },
+    { c: "🎬 Pop Culture", q: "What are Taylor Swift's fans called?", a: "Swifties" },
+    // 🍔 Food
+    { c: "🍔 Food", q: "Which country invented pizza?", a: "Italy" },
+    { c: "🍔 Food", q: "What fruit do raisins come from?", a: "Grapes" },
+    { c: "🍔 Food", q: "What fruit is dried to make prunes?", a: "Plums" },
+    { c: "🍔 Food", q: "What are the three ingredients of poutine?", a: "Fries, cheese curds, and gravy" },
+    { c: "🍔 Food", q: "What's the main ingredient in guacamole?", a: "Avocado" },
+    { c: "🍔 Food", q: "Which nut gives Nutella its flavour?", a: "Hazelnut" },
+    { c: "🍔 Food", q: "Sushi originally comes from which country?", a: "Japan" },
+    { c: "🍔 Food", q: "Which country is the croissant from?", a: "France (though it evolved from the Austrian kipferl)" },
+    { c: "🍔 Food", q: "What insect makes honey?", a: "Bees" },
+    { c: "🍔 Food", q: "What's the most stolen food in the world?", a: "Cheese" },
+    { c: "🍔 Food", q: "In the 1830s, ketchup was sold as what?", a: "Medicine" },
+    { c: "🍔 Food", q: "What grain is most bread made from?", a: "Wheat" },
+    { c: "🍔 Food", q: "Which province makes about 90% of Canada's maple syrup?", a: "Quebec" },
+    { c: "🍔 Food", q: "What are Tim Hortons' donut holes called?", a: "Timbits" },
+    { c: "🍔 Food", q: "What vegetable are pickles made from?", a: "Cucumbers" },
   ];
+  const TRIVIA_CATS = ["All", ...new Set(TRIVIA.map((t) => t.c))];
 
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -120,7 +177,7 @@
 
   // ---------- state ----------
   function defaults() {
-    return { stops: [], packing: DEFAULT_PACKING, expenses: [], people: 2, plates: [], catIdx: 0, travelers: [], payerId: null, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [] };
+    return { stops: [], packing: DEFAULT_PACKING, expenses: [], people: 2, plates: [], catIdx: 0, travelers: [], payerId: null, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [], triviaCat: "All" };
   }
   let state = load();
   function load() {
@@ -635,22 +692,39 @@
   $("#q20-minus").addEventListener("click", () => { state.q20 = Math.max(0, state.q20 - 1); save(); renderQ20(); });
   $("#q20-reset").addEventListener("click", () => { state.q20 = 0; save(); renderQ20(); });
 
-  // Trivia — no repeats until the whole pool has been used
+  // Trivia — category filter; no repeats until that category's pool is used up
   let triviaIdx = -1;
+  function renderTriviaCats() {
+    const row = $("#trivia-cats");
+    row.innerHTML = "";
+    TRIVIA_CATS.forEach((cat) => {
+      const chip = button("chip" + (cat === state.triviaCat ? " active" : ""), cat, () => {
+        state.triviaCat = cat;
+        save();
+        renderTriviaCats();
+      });
+      row.append(chip);
+    });
+  }
   $("#trivia-btn").addEventListener("click", () => {
     if (!Array.isArray(state.triviaSeen)) state.triviaSeen = [];
-    if (state.triviaSeen.length >= TRIVIA.length) state.triviaSeen = [];
-    const remaining = TRIVIA.map((_, i) => i).filter((i) => !state.triviaSeen.includes(i));
+    const pool = TRIVIA.map((_, i) => i).filter((i) => state.triviaCat === "All" || TRIVIA[i].c === state.triviaCat);
+    let remaining = pool.filter((i) => !state.triviaSeen.includes(i));
+    if (!remaining.length) {
+      state.triviaSeen = state.triviaSeen.filter((i) => !pool.includes(i));
+      remaining = pool;
+    }
     triviaIdx = remaining[Math.floor(Math.random() * remaining.length)];
     state.triviaSeen.push(triviaIdx);
     save();
-    $("#trivia-q").textContent = TRIVIA[triviaIdx][0];
+    $("#trivia-cat-tag").textContent = TRIVIA[triviaIdx].c;
+    $("#trivia-q").textContent = TRIVIA[triviaIdx].q;
     $("#trivia-a").hidden = true;
     $("#trivia-reveal").hidden = false;
   });
   $("#trivia-reveal").addEventListener("click", () => {
     if (triviaIdx < 0) return;
-    $("#trivia-a").textContent = TRIVIA[triviaIdx][1];
+    $("#trivia-a").textContent = TRIVIA[triviaIdx].a;
     $("#trivia-a").hidden = false;
     $("#trivia-reveal").hidden = true;
   });
@@ -750,6 +824,7 @@
     renderPlates();
     renderBingo();
     renderQ20();
+    renderTriviaCats();
   }
   renderAll();
 

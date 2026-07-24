@@ -309,6 +309,16 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   margin-bottom: 8px;
 }
 .trivia-answer { font-size: 1.05rem; font-weight: 700; color: var(--done); margin: -6px 0 12px; }
+.trivia-cats { margin-bottom: 12px; }
+.trivia-cats .chip { font-size: 0.78rem; padding: 7px 10px; }
+.trivia-cat-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.trivia-cat-tag:empty { display: none; }
 .row-btns .btn-primary { flex: 1; }
 
 .plate-grid {
