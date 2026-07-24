@@ -28,6 +28,7 @@
         <div class="progress-bar"><div id="trip-progress-fill"></div></div>
         <span id="trip-progress-label"></span>
       </div>
+      <button id="driver-enter" class="driver-enter" hidden>🚗 Driver Mode</button>
       <ul id="stop-list" class="card-list"></ul>
       <p id="trip-empty" class="empty-note">No stops yet. Add your first destination below — gas stations, diners, scenic overlooks, all of it.</p>
       <form id="stop-form" class="add-form">
@@ -145,6 +146,20 @@
       </div>
     </section>
   </main>
+
+  <div id="driver-mode" class="driver-mode" hidden>
+    <button id="driver-exit" class="driver-exit">✕ Exit</button>
+    <div class="driver-content">
+      <div class="driver-label">NEXT STOP</div>
+      <div id="driver-stop" class="driver-stop">—</div>
+      <div id="driver-note" class="driver-note"></div>
+      <div id="driver-progress" class="driver-progress"></div>
+    </div>
+    <div class="driver-actions">
+      <a id="driver-nav" class="driver-btn nav" target="_blank" rel="noopener">🧭 Navigate</a>
+      <button id="driver-arrived" class="driver-btn arrived">✓ Arrived</button>
+    </div>
+  </div>
 
   <nav class="tab-bar">
     <button class="tab active" data-view="trip"><span>🗺️</span>Trip</button>
