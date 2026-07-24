@@ -18,6 +18,7 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let controller = WKUserContentController()
         controller.add(context.coordinator, name: "share")
+        controller.add(context.coordinator, name: "keepAwake")
         // Route navigator.share (settle-up summary, backup file) to the native share sheet.
         let shareShim = """
         navigator.share = async (data) => {
@@ -81,6 +82,11 @@ struct WebView: UIViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            // Driver mode asks the OS not to sleep the screen while the phone is mounted.
+            if message.name == "keepAwake" {
+                UIApplication.shared.isIdleTimerDisabled = (message.body as? Bool) ?? false
+                return
+            }
             guard message.name == "share",
                   let body = message.body as? [String: Any],
                   let text = body["text"] as? String else { return }

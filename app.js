@@ -213,6 +213,12 @@
     return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  /* Apple devices get Apple Maps links (opens the native app); everyone else gets Google. */
+  function mapsUrl(query) {
+    const apple = /iPhone|iPad|Macintosh/i.test(navigator.userAgent);
+    return (apple ? "https://maps.apple.com/?q=" : "https://maps.google.com/?q=") + encodeURIComponent(query);
+  }
+
   // ---------- trip ----------
   function renderTrip() {
     const list = $("#stop-list");
@@ -226,6 +232,7 @@
       $("#trip-progress-label").textContent = `${done}/${stops.length} stops`;
     }
     $("#header-sub").textContent = stops.length ? `${stops.length - done} stops to go` : "";
+    $("#driver-enter").hidden = stops.length === 0;
 
     stops.forEach((stop, i) => {
       const li = document.createElement("li");
@@ -268,7 +275,7 @@
       sub.className = "item-sub";
       if (stop.note) sub.append(stop.note + " · ");
       const map = document.createElement("a");
-      map.href = "https://maps.google.com/?q=" + encodeURIComponent(stop.name);
+      map.href = mapsUrl(stop.name);
       map.target = "_blank";
       map.rel = "noopener";
       map.textContent = "map ↗";
@@ -301,6 +308,60 @@
     e.target.reset();
     save();
     renderTrip();
+  });
+
+  // ---------- driver mode ----------
+  const driverEl = $("#driver-mode");
+  let wakeLock = null;
+  async function acquireWakeLock() {
+    try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* unsupported — native bridge covers the iOS app */ }
+  }
+  function setNativeKeepAwake(on) {
+    try { window.webkit.messageHandlers.keepAwake.postMessage(on); } catch (e) { /* not running in the iOS wrapper */ }
+  }
+  function nextStop() {
+    return state.stops.find((s) => !s.done) || null;
+  }
+  function renderDriver() {
+    const stop = nextStop();
+    const done = state.stops.filter((s) => s.done).length;
+    if (!stop) {
+      $("#driver-stop").textContent = state.stops.length ? "That's the trip! 🎉" : "No stops planned";
+      $("#driver-note").textContent = "";
+      $("#driver-progress").textContent = state.stops.length ? `All ${state.stops.length} stops done` : "";
+      $("#driver-nav").hidden = true;
+      $("#driver-arrived").hidden = true;
+      return;
+    }
+    $("#driver-stop").textContent = stop.name;
+    $("#driver-note").textContent = stop.note || "";
+    $("#driver-progress").textContent = `Stop ${done + 1} of ${state.stops.length}`;
+    $("#driver-nav").hidden = false;
+    $("#driver-nav").href = mapsUrl(stop.name);
+    $("#driver-arrived").hidden = false;
+  }
+  $("#driver-enter").addEventListener("click", () => {
+    driverEl.hidden = false;
+    renderDriver();
+    acquireWakeLock();
+    setNativeKeepAwake(true);
+  });
+  $("#driver-exit").addEventListener("click", () => {
+    driverEl.hidden = true;
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    setNativeKeepAwake(false);
+  });
+  $("#driver-arrived").addEventListener("click", () => {
+    const stop = nextStop();
+    if (!stop) return;
+    stop.done = true;
+    save();
+    renderTrip();
+    renderDriver();
+  });
+  /* the OS silently drops wake locks when the app is backgrounded — re-grab on return */
+  document.addEventListener("visibilitychange", () => {
+    if (!driverEl.hidden && document.visibilityState === "visible") acquireWakeLock();
   });
 
   // ---------- packing ----------
