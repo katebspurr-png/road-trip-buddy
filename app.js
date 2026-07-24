@@ -15,6 +15,7 @@
   const CATEGORIES = ["⛽ Gas", "🍔 Food", "🛏️ Lodging", "🎢 Fun", "📦 Other"];
 
   const PLATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
+  const PLATES_CA = ["AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","QC","SK","YT"];
 
   const PROMPTS = [
     "What's the best meal you've ever had on a trip?",
@@ -49,19 +50,28 @@
   }
 
   // ---------- state ----------
+  function defaults() {
+    return { stops: [], packing: DEFAULT_PACKING, expenses: [], people: 2, plates: [], catIdx: 0, travelers: [], payerId: null, platesCanada: false };
+  }
   let state = load();
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) return { ...defaults(), ...JSON.parse(raw) };
     } catch (e) { /* corrupted state — start fresh */ }
-    return { stops: [], packing: DEFAULT_PACKING, expenses: [], people: 2, plates: [], catIdx: 0 };
+    return defaults();
   }
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage full/blocked */ }
   }
 
   const $ = (sel) => document.querySelector(sel);
+
+  /* which list item is in edit mode: { type: "stop"|"exp", id } */
+  let editing = null;
+  function isEditing(type, id) {
+    return editing && editing.type === type && editing.id === id;
+  }
 
   // ---------- tabs ----------
   const views = { trip: $("#view-trip"), packing: $("#view-packing"), expenses: $("#view-expenses"), games: $("#view-games") };
@@ -93,6 +103,31 @@
 
     stops.forEach((stop, i) => {
       const li = document.createElement("li");
+
+      if (isEditing("stop", stop.id)) {
+        li.className = "editing";
+        const fields = document.createElement("div");
+        fields.className = "edit-fields";
+        const nameIn = editInput("text", stop.name, "Stop name");
+        const noteIn = editInput("text", stop.note || "", "Note (optional)");
+        fields.append(nameIn, noteIn);
+        const ok = button("mini-btn ok", "✓", () => {
+          const name = nameIn.value.trim();
+          if (name) stop.name = name;
+          stop.note = noteIn.value.trim();
+          editing = null;
+          save();
+          renderTrip();
+        });
+        const cancel = button("mini-btn", "✕", () => { editing = null; renderTrip(); });
+        const actions = document.createElement("div");
+        actions.className = "edit-actions";
+        actions.append(ok, cancel);
+        li.append(fields, actions);
+        list.append(li);
+        return;
+      }
+
       li.className = stop.done ? "checked" : "";
 
       const check = button("check", "✓", () => { stop.done = !stop.done; save(); renderTrip(); });
@@ -114,13 +149,15 @@
       sub.append(map);
       body.append(title, sub);
 
+      const edit = button("mini-btn", "✎", () => { editing = { type: "stop", id: stop.id }; renderTrip(); });
+      edit.setAttribute("aria-label", "edit stop");
       const up = button("mini-btn", "▲", () => { swap(stops, i, i - 1); });
       const down = button("mini-btn", "▼", () => { swap(stops, i, i + 1); });
       up.disabled = i === 0;
       down.disabled = i === stops.length - 1;
       const del = button("mini-btn danger", "✕", () => { stops.splice(i, 1); save(); renderTrip(); });
 
-      li.append(check, body, up, down, del);
+      li.append(check, body, edit, up, down, del);
       list.append(li);
     });
   }
@@ -192,7 +229,99 @@
     renderPacking();
   });
 
+  // ---------- travelers ----------
+  function travelerById(id) {
+    return state.travelers.find((t) => t.id === id) || null;
+  }
+  function renderTravelers() {
+    const row = $("#traveler-chips");
+    row.innerHTML = "";
+    state.travelers.forEach((t) => {
+      const chip = button("chip", t.name + " ✕", () => {
+        state.travelers = state.travelers.filter((x) => x.id !== t.id);
+        if (state.payerId === t.id) state.payerId = null;
+        save();
+        renderTravelers();
+        renderPayerChips();
+        renderExpenses();
+      });
+      chip.setAttribute("aria-label", "remove " + t.name);
+      row.append(chip);
+    });
+    $("#traveler-empty").hidden = state.travelers.length > 0;
+  }
+  $("#traveler-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = $("#traveler-name").value.trim();
+    if (!name) return;
+    if (state.travelers.some((t) => t.name.toLowerCase() === name.toLowerCase())) return;
+    state.travelers.push({ id: uid(), name });
+    e.target.reset();
+    save();
+    renderTravelers();
+    renderPayerChips();
+    renderExpenses();
+  });
+
+  function currentPayerId() {
+    if (state.travelers.length < 2) return null;
+    if (travelerById(state.payerId)) return state.payerId;
+    return state.travelers[0].id;
+  }
+  function renderPayerChips() {
+    const wrap = $("#exp-paidby");
+    const hasTravelers = state.travelers.length >= 2;
+    wrap.hidden = !hasTravelers;
+    wrap.innerHTML = "";
+    if (!hasTravelers) return;
+    const label = document.createElement("span");
+    label.className = "paidby-label";
+    label.textContent = "Paid by";
+    wrap.append(label);
+    const active = currentPayerId();
+    state.travelers.forEach((t) => {
+      const chip = button("chip" + (t.id === active ? " active" : ""), t.name, () => {
+        state.payerId = t.id;
+        save();
+        renderPayerChips();
+      });
+      wrap.append(chip);
+    });
+  }
+
   // ---------- expenses ----------
+  function computeSettleUp() {
+    const travelers = state.travelers;
+    if (travelers.length < 2) return null;
+    const ids = new Set(travelers.map((t) => t.id));
+    const attributed = state.expenses.filter((x) => x.paidBy && ids.has(x.paidBy));
+    const balance = {};
+    travelers.forEach((t) => { balance[t.id] = 0; });
+    attributed.forEach((x) => {
+      balance[x.paidBy] += x.amount;
+      const share = x.amount / travelers.length;
+      travelers.forEach((t) => { balance[t.id] -= share; });
+    });
+    const debtors = [], creditors = [];
+    Object.entries(balance).forEach(([id, b]) => {
+      if (b < -0.005) debtors.push({ id, amt: -b });
+      else if (b > 0.005) creditors.push({ id, amt: b });
+    });
+    debtors.sort((a, b) => b.amt - a.amt);
+    creditors.sort((a, b) => b.amt - a.amt);
+    const lines = [];
+    let di = 0, ci = 0;
+    while (di < debtors.length && ci < creditors.length) {
+      const pay = Math.min(debtors[di].amt, creditors[ci].amt);
+      lines.push({ from: travelerById(debtors[di].id).name, to: travelerById(creditors[ci].id).name, amt: pay });
+      debtors[di].amt -= pay;
+      creditors[ci].amt -= pay;
+      if (debtors[di].amt < 0.005) di++;
+      if (creditors[ci].amt < 0.005) ci++;
+    }
+    return { lines, unassigned: state.expenses.length - attributed.length };
+  }
+
   function renderCatChips() {
     const row = $("#exp-cats");
     row.innerHTML = "";
@@ -212,10 +341,14 @@
     const exps = state.expenses;
     $("#exp-empty").hidden = exps.length > 0;
 
+    const hasTravelers = state.travelers.length >= 2;
+    const splitWays = hasTravelers ? state.travelers.length : state.people;
     const total = exps.reduce((sum, x) => sum + x.amount, 0);
     $("#exp-total").textContent = fmtMoney(total);
-    $("#people-count").textContent = state.people;
-    $("#exp-per-person").textContent = fmtMoney(total / state.people);
+    $("#people-count").textContent = splitWays;
+    $("#exp-per-person").textContent = fmtMoney(total / splitWays);
+    $("#people-minus").hidden = hasTravelers;
+    $("#people-plus").hidden = hasTravelers;
 
     const byCat = {};
     exps.forEach((x) => { byCat[x.cat] = (byCat[x.cat] || 0) + x.amount; });
@@ -223,8 +356,72 @@
       .map(([c, v]) => `${c} ${fmtMoney(v)}`)
       .join("   ");
 
+    const settle = computeSettleUp();
+    const settleBox = $("#settle-lines");
+    settleBox.innerHTML = "";
+    if (settle && (settle.lines.length || settle.unassigned)) {
+      settle.lines.forEach((l) => {
+        const div = document.createElement("div");
+        div.textContent = `${l.from} owes ${l.to} ${fmtMoney(l.amt)}`;
+        settleBox.append(div);
+      });
+      if (!settle.lines.length && state.expenses.length) {
+        const div = document.createElement("div");
+        div.textContent = "All square ✓";
+        settleBox.append(div);
+      }
+      if (settle.unassigned) {
+        const note = document.createElement("div");
+        note.className = "settle-note";
+        note.textContent = `${settle.unassigned} expense${settle.unassigned > 1 ? "s" : ""} without a payer — not counted in settle-up`;
+        settleBox.append(note);
+      }
+    }
+    $("#exp-share").hidden = exps.length === 0;
+
     [...exps].reverse().forEach((exp) => {
       const li = document.createElement("li");
+
+      if (isEditing("exp", exp.id)) {
+        li.className = "editing";
+        const fields = document.createElement("div");
+        fields.className = "edit-fields";
+        const amountIn = editInput("number", exp.amount, "0.00");
+        amountIn.step = "0.01";
+        amountIn.min = "0.01";
+        amountIn.inputMode = "decimal";
+        const catSel = document.createElement("select");
+        CATEGORIES.forEach((c) => catSel.append(new Option(c, c)));
+        catSel.value = CATEGORIES.includes(exp.cat) ? exp.cat : CATEGORIES[CATEGORIES.length - 1];
+        const noteIn = editInput("text", exp.note || "", "Note (optional)");
+        fields.append(amountIn, catSel, noteIn);
+        let payerSel = null;
+        if (state.travelers.length >= 2) {
+          payerSel = document.createElement("select");
+          payerSel.append(new Option("Paid by — not set", ""));
+          state.travelers.forEach((t) => payerSel.append(new Option("Paid by " + t.name, t.id)));
+          payerSel.value = travelerById(exp.paidBy) ? exp.paidBy : "";
+          fields.append(payerSel);
+        }
+        const ok = button("mini-btn ok", "✓", () => {
+          const amount = parseFloat(amountIn.value);
+          if (amount > 0) exp.amount = Math.round(amount * 100) / 100;
+          exp.cat = catSel.value;
+          exp.note = noteIn.value.trim();
+          if (payerSel) exp.paidBy = payerSel.value || null;
+          editing = null;
+          save();
+          renderExpenses();
+        });
+        const cancel = button("mini-btn", "✕", () => { editing = null; renderExpenses(); });
+        const actions = document.createElement("div");
+        actions.className = "edit-actions";
+        actions.append(ok, cancel);
+        li.append(fields, actions);
+        list.append(li);
+        return;
+      }
+
       const body = document.createElement("div");
       body.className = "item-body";
       const title = document.createElement("div");
@@ -232,17 +429,22 @@
       title.textContent = exp.cat + (exp.note ? " · " + exp.note : "");
       const sub = document.createElement("div");
       sub.className = "item-sub";
-      sub.textContent = new Date(exp.at).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
+      const payer = travelerById(exp.paidBy);
+      sub.textContent =
+        new Date(exp.at).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) +
+        (payer ? " · " + payer.name + " paid" : "");
       body.append(title, sub);
       const amount = document.createElement("span");
       amount.className = "exp-amount";
       amount.textContent = fmtMoney(exp.amount);
+      const edit = button("mini-btn", "✎", () => { editing = { type: "exp", id: exp.id }; renderExpenses(); });
+      edit.setAttribute("aria-label", "edit expense");
       const del = button("mini-btn danger", "✕", () => {
         state.expenses = state.expenses.filter((x) => x.id !== exp.id);
         save();
         renderExpenses();
       });
-      li.append(body, amount, del);
+      li.append(body, amount, edit, del);
       list.append(li);
     });
   }
@@ -255,6 +457,7 @@
       amount: Math.round(amount * 100) / 100,
       cat: CATEGORIES[state.catIdx],
       note: $("#exp-note").value.trim(),
+      paidBy: currentPayerId(),
       at: Date.now(),
     });
     e.target.reset();
@@ -272,6 +475,41 @@
     renderExpenses();
   });
 
+  // ---------- share settle-up ----------
+  function summaryText() {
+    const total = state.expenses.reduce((sum, x) => sum + x.amount, 0);
+    const byCat = {};
+    state.expenses.forEach((x) => { byCat[x.cat] = (byCat[x.cat] || 0) + x.amount; });
+    const hasTravelers = state.travelers.length >= 2;
+    const splitWays = hasTravelers ? state.travelers.length : state.people;
+    const lines = [
+      "🛣️ Road Trip Buddy — expenses",
+      "Total: " + fmtMoney(total),
+      ...Object.entries(byCat).map(([c, v]) => `  ${c} ${fmtMoney(v)}`),
+      `Split ${splitWays} ways: ${fmtMoney(total / splitWays)} each`,
+    ];
+    const settle = computeSettleUp();
+    if (settle && settle.lines.length) {
+      lines.push("Settle up:");
+      settle.lines.forEach((l) => lines.push(`  ${l.from} owes ${l.to} ${fmtMoney(l.amt)}`));
+    }
+    return lines.join("\n");
+  }
+  $("#exp-share").addEventListener("click", async () => {
+    const text = summaryText();
+    const btn = $("#exp-share");
+    try {
+      if (navigator.share) {
+        await navigator.share({ text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        const old = btn.textContent;
+        btn.textContent = "Copied to clipboard ✓";
+        setTimeout(() => { btn.textContent = old; }, 1800);
+      }
+    } catch (e) { /* user cancelled the share sheet */ }
+  });
+
   // ---------- games ----------
   let lastPrompt = -1;
   $("#prompt-btn").addEventListener("click", () => {
@@ -284,7 +522,8 @@
   function renderPlates() {
     const grid = $("#plate-grid");
     grid.innerHTML = "";
-    PLATES.forEach((code) => {
+    const all = state.platesCanada ? [...PLATES, ...PLATES_CA] : PLATES;
+    all.forEach((code) => {
       const spotted = state.plates.includes(code);
       const btn = button("plate" + (spotted ? " spotted" : ""), code, () => {
         state.plates = spotted ? state.plates.filter((c) => c !== code) : [...state.plates, code];
@@ -293,12 +532,52 @@
       });
       grid.append(btn);
     });
-    $("#plate-count").textContent = state.plates.length;
+    $("#plate-count").textContent = state.plates.filter((c) => all.includes(c)).length;
+    $("#plate-total").textContent = all.length;
+    $("#plates-canada").checked = state.platesCanada;
   }
+  $("#plates-canada").addEventListener("change", (e) => {
+    state.platesCanada = e.target.checked;
+    save();
+    renderPlates();
+  });
   $("#plate-reset").addEventListener("click", () => {
     state.plates = [];
     save();
     renderPlates();
+  });
+
+  // ---------- backup ----------
+  $("#backup-export").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "road-trip-buddy-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $("#backup-import").addEventListener("click", () => $("#backup-file").click());
+  $("#backup-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data;
+      try { data = JSON.parse(reader.result); } catch (err) { data = null; }
+      if (!data || !Array.isArray(data.stops) || !Array.isArray(data.packing) || !Array.isArray(data.expenses)) {
+        $("#backup-status").textContent = "That file doesn't look like a Road Trip Buddy backup.";
+        return;
+      }
+      if (!confirm("Replace everything in the app with this backup?")) return;
+      state = { ...defaults(), ...data };
+      editing = null;
+      save();
+      renderAll();
+      $("#backup-status").textContent = "Backup restored ✓";
+      setTimeout(() => { $("#backup-status").textContent = ""; }, 2500);
+    };
+    reader.readAsText(file);
   });
 
   // ---------- helpers & init ----------
@@ -310,12 +589,24 @@
     b.addEventListener("click", onClick);
     return b;
   }
+  function editInput(type, value, placeholder) {
+    const el = document.createElement("input");
+    el.type = type;
+    el.value = value;
+    el.placeholder = placeholder;
+    return el;
+  }
 
-  renderTrip();
-  renderPacking();
-  renderCatChips();
-  renderExpenses();
-  renderPlates();
+  function renderAll() {
+    renderTrip();
+    renderPacking();
+    renderTravelers();
+    renderPayerChips();
+    renderCatChips();
+    renderExpenses();
+    renderPlates();
+  }
+  renderAll();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));

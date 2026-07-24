@@ -194,6 +194,76 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .cat-summary { width: 100%; font-size: 0.8rem; color: var(--muted); }
 .exp-amount { font-weight: 800; white-space: nowrap; }
 
+/* ---- travelers & settle-up ---- */
+.travelers-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.travelers-head {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.travelers-hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+.traveler-form { display: flex; gap: 8px; margin-top: 8px; }
+.traveler-form input { flex: 1; padding: 9px 12px; }
+.btn-mini {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  flex: none;
+}
+.settle-lines {
+  width: 100%;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settle-lines:empty { display: none; }
+.settle-lines .settle-note { font-size: 0.75rem; font-weight: 400; color: var(--muted); }
+.paidby-row .paidby-label { font-size: 0.78rem; color: var(--muted); align-self: center; }
+
+/* ---- inline editing ---- */
+.edit-fields { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.edit-fields input, .edit-fields select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+}
+.edit-actions { display: flex; flex-direction: column; gap: 4px; flex: none; }
+.mini-btn.ok { color: var(--done); font-weight: 700; }
+
+/* ---- backup & toggles ---- */
+.row-btns { display: flex; gap: 8px; }
+.row-btns .btn-ghost { margin-top: 0; }
+.backup-status { font-size: 0.8rem; color: var(--muted); margin-top: 8px; min-height: 1em; }
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 12px;
+  cursor: pointer;
+}
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+
 /* ---- games ---- */
 .game-card {
   background: var(--card);

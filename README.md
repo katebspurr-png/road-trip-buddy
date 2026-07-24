@@ -6,10 +6,11 @@ An offline-first PWA co-pilot for road trips. No build step, no dependencies —
 
 ## Features
 
-- **🗺️ Trip** — plan your stops in order, add notes, check them off as you arrive, one-tap Google Maps link for each stop
+- **🗺️ Trip** — plan your stops in order, add notes, check them off as you arrive, edit in place, one-tap Google Maps link for each stop
 - **🎒 Packing** — pre-loaded road-trip checklist (essentials, car prep, comfort) plus your own items
-- **💸 Expenses** — log gas/food/lodging/fun as you go; running total, category breakdown, and per-person split
-- **🎮 Games** — License Plate Hunt (all 50 states + DC) and "Ask the Buddy" conversation prompts
+- **💸 Expenses** — log gas/food/lodging/fun as you go; running total, category breakdown, per-person split, and edit in place. Add traveler names to track **who paid** and get a settle-up ("Jo owes Kate $40") you can share via the share sheet
+- **🎮 Games** — License Plate Hunt (all 50 states + DC, with an optional 🇨🇦 provinces & territories mode) and "Ask the Buddy" conversation prompts
+- **💾 Backup** — export/import all your data as a JSON file, so a cleared browser cache can't eat your trip
 
 Everything is stored in `localStorage` on your phone and the app shell is cached by a service worker, so **it keeps working with zero signal**.
 
