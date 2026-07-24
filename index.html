@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Road Trip Buddy</title>
+  <meta name="description" content="Your offline co-pilot: stops, packing, expenses, and games for the road.">
+  <meta name="theme-color" content="#ea580c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TripBuddy">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>🛣️ Road Trip Buddy</h1>
+    <span id="header-sub" class="header-sub"></span>
+  </header>
+
+  <main id="main">
+    <!-- ===== Trip / Stops ===== -->
+    <section id="view-trip" class="view">
+      <div class="progress-card" id="trip-progress" hidden>
+        <div class="progress-bar"><div id="trip-progress-fill"></div></div>
+        <span id="trip-progress-label"></span>
+      </div>
+      <ul id="stop-list" class="card-list"></ul>
+      <p id="trip-empty" class="empty-note">No stops yet. Add your first destination below — gas stations, diners, scenic overlooks, all of it.</p>
+      <form id="stop-form" class="add-form">
+        <input id="stop-name" type="text" placeholder="Stop (e.g. World's Largest Ball of Twine)" required maxlength="80" autocomplete="off">
+        <input id="stop-note" type="text" placeholder="Note (optional — exit 42, lunch, etc.)" maxlength="120" autocomplete="off">
+        <button type="submit" class="btn-primary">+ Add stop</button>
+      </form>
+    </section>
+
+    <!-- ===== Packing ===== -->
+    <section id="view-packing" class="view" hidden>
+      <div class="progress-card" id="pack-progress">
+        <div class="progress-bar"><div id="pack-progress-fill"></div></div>
+        <span id="pack-progress-label"></span>
+      </div>
+      <ul id="pack-list" class="card-list"></ul>
+      <form id="pack-form" class="add-form">
+        <input id="pack-name" type="text" placeholder="Add an item…" required maxlength="80" autocomplete="off">
+        <button type="submit" class="btn-primary">+ Add item</button>
+      </form>
+      <button id="pack-reset" class="btn-ghost">Uncheck everything</button>
+    </section>
+
+    <!-- ===== Expenses ===== -->
+    <section id="view-expenses" class="view" hidden>
+      <div class="totals-card">
+        <div class="total-big"><span id="exp-total">$0.00</span><label>total spent</label></div>
+        <div class="total-split">
+          <span id="exp-per-person">$0.00</span>
+          <label>each, split
+            <span class="stepper">
+              <button id="people-minus" type="button" aria-label="fewer people">−</button>
+              <b id="people-count">2</b>
+              <button id="people-plus" type="button" aria-label="more people">+</button>
+            </span> ways
+          </label>
+        </div>
+        <div id="exp-by-cat" class="cat-summary"></div>
+      </div>
+      <form id="exp-form" class="add-form">
+        <div class="row">
+          <input id="exp-amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00" required>
+          <div id="exp-cats" class="chip-row" role="radiogroup" aria-label="category"></div>
+        </div>
+        <input id="exp-note" type="text" placeholder="Note (optional — Buc-ee's snack raid)" maxlength="80" autocomplete="off">
+        <button type="submit" class="btn-primary">+ Add expense</button>
+      </form>
+      <ul id="exp-list" class="card-list"></ul>
+      <p id="exp-empty" class="empty-note">Nothing logged yet. Gas, snacks, motels — track it here and settle up later.</p>
+    </section>
+
+    <!-- ===== Games ===== -->
+    <section id="view-games" class="view" hidden>
+      <div class="game-card">
+        <h2>🎲 Ask the Buddy</h2>
+        <p id="prompt-text" class="prompt-text">Tap the button for a question to throw at the car.</p>
+        <button id="prompt-btn" class="btn-primary">New question</button>
+      </div>
+      <div class="game-card">
+        <h2>🚘 License Plate Hunt</h2>
+        <p class="game-sub"><span id="plate-count">0</span>/51 spotted — tap a plate when you see it</p>
+        <div id="plate-grid" class="plate-grid"></div>
+        <button id="plate-reset" class="btn-ghost">Reset hunt</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tab-bar">
+    <button class="tab active" data-view="trip"><span>🗺️</span>Trip</button>
+    <button class="tab" data-view="packing"><span>🎒</span>Packing</button>
+    <button class="tab" data-view="expenses"><span>💸</span>Expenses</button>
+    <button class="tab" data-view="games"><span>🎮</span>Games</button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
