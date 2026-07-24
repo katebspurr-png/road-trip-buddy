@@ -1,5 +1,5 @@
 /* Cache-first service worker so the app works in cell dead zones. */
-const CACHE = "rtb-v1";
+const CACHE = "rtb-v2";
 const ASSETS = [
   "./",
   "./index.html",

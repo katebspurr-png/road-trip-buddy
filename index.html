@@ -9,6 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TripBuddy">
@@ -65,6 +66,16 @@
           </label>
         </div>
         <div id="exp-by-cat" class="cat-summary"></div>
+        <div id="settle-lines" class="settle-lines"></div>
+      </div>
+      <div class="travelers-card">
+        <div class="travelers-head">👥 Travelers</div>
+        <p id="traveler-empty" class="travelers-hint">Add at least two names to track who paid what and settle up at the end.</p>
+        <div id="traveler-chips" class="chip-row"></div>
+        <form id="traveler-form" class="traveler-form">
+          <input id="traveler-name" type="text" placeholder="Add a name…" maxlength="20" autocomplete="off">
+          <button type="submit" class="btn-mini">Add</button>
+        </form>
       </div>
       <form id="exp-form" class="add-form">
         <div class="row">
@@ -72,10 +83,12 @@
           <div id="exp-cats" class="chip-row" role="radiogroup" aria-label="category"></div>
         </div>
         <input id="exp-note" type="text" placeholder="Note (optional — Buc-ee's snack raid)" maxlength="80" autocomplete="off">
+        <div id="exp-paidby" class="chip-row paidby-row" hidden></div>
         <button type="submit" class="btn-primary">+ Add expense</button>
       </form>
       <ul id="exp-list" class="card-list"></ul>
       <p id="exp-empty" class="empty-note">Nothing logged yet. Gas, snacks, motels — track it here and settle up later.</p>
+      <button id="exp-share" class="btn-ghost" hidden>📤 Share settle-up summary</button>
     </section>
 
     <!-- ===== Games ===== -->
@@ -87,9 +100,20 @@
       </div>
       <div class="game-card">
         <h2>🚘 License Plate Hunt</h2>
-        <p class="game-sub"><span id="plate-count">0</span>/51 spotted — tap a plate when you see it</p>
+        <p class="game-sub"><span id="plate-count">0</span>/<span id="plate-total">51</span> spotted — tap a plate when you see it</p>
         <div id="plate-grid" class="plate-grid"></div>
+        <label class="toggle"><input type="checkbox" id="plates-canada"> 🇨🇦 Include Canadian provinces &amp; territories</label>
         <button id="plate-reset" class="btn-ghost">Reset hunt</button>
+      </div>
+      <div class="game-card">
+        <h2>💾 Backup</h2>
+        <p class="game-sub">Everything lives only on this phone — export a backup once in a while, or move your trip to another device.</p>
+        <div class="row-btns">
+          <button id="backup-export" class="btn-ghost">Export backup</button>
+          <button id="backup-import" class="btn-ghost">Import backup</button>
+        </div>
+        <p id="backup-status" class="backup-status" role="status"></p>
+        <input id="backup-file" type="file" accept="application/json,.json" hidden>
       </div>
     </section>
   </main>
