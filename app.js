@@ -548,11 +548,18 @@
   });
 
   // ---------- backup ----------
-  $("#backup-export").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  $("#backup-export").addEventListener("click", async () => {
+    const json = JSON.stringify(state, null, 2);
+    const name = "road-trip-buddy-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    const file = typeof File !== "undefined" ? new File([json], name, { type: "application/json" }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); } catch (e) { /* user cancelled the share sheet */ }
+      return;
+    }
+    const blob = new Blob([json], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "road-trip-buddy-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.download = name;
     a.click();
     URL.revokeObjectURL(a.href);
   });

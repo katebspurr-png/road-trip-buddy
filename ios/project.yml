@@ -1,0 +1,35 @@
+name: RoadTripBuddy
+options:
+  bundleIdPrefix: com.katespurr
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+targets:
+  RoadTripBuddy:
+    type: application
+    platform: iOS
+    sources:
+      - RoadTripBuddy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.katespurr.roadtripbuddy
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Road Trip Buddy
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      - name: Copy Web Assets
+        basedOnDependencyAnalysis: false
+        script: |
+          # Bundle the web app (repo root) into Resources/www so the wrapper always ships the latest code.
+          WWW="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/www"
+          rm -rf "$WWW"
+          mkdir -p "$WWW/icons"
+          cp "${SRCROOT}/../index.html" "${SRCROOT}/../style.css" "${SRCROOT}/../app.js" "${SRCROOT}/../manifest.webmanifest" "$WWW/"
+          cp "${SRCROOT}/../icons/"*.png "$WWW/icons/"
