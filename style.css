@@ -275,6 +275,42 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .game-card h2 { font-size: 1.05rem; margin-bottom: 8px; }
 .game-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; }
 .prompt-text { min-height: 3em; font-size: 1.05rem; margin-bottom: 12px; }
+.bingo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.bingo-cell {
+  aspect-ratio: 1;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.58rem;
+  line-height: 1.15;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+.bingo-cell.marked { background: var(--done); border-color: var(--done); color: #fff; }
+.bingo-cell.free { font-size: 1.2rem; background: var(--accent-soft); border-color: var(--accent); }
+.bingo-cell.free.marked { background: var(--accent-soft); color: var(--text); }
+.bingo-banner {
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-align: center;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.trivia-answer { font-size: 1.05rem; font-weight: 700; color: var(--done); margin: -6px 0 12px; }
+.row-btns .btn-primary { flex: 1; }
+
 .plate-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));

@@ -45,13 +45,82 @@
     "Rank the last three places we stopped. Defend your ranking.",
   ];
 
+  const BINGO_POOL = [
+    "Cow", "Horse", "Water tower", "Red barn", "Wind turbine", "Motorcycle", "School bus",
+    "Yellow car", "Convertible", "Boat on a trailer", "Out-of-province plate", "Rest area sign",
+    "Railroad crossing", "Train", "Bridge", "Tunnel", "Lighthouse", "Ferry", "Moose sign",
+    "Deer (a real one)", "Tim Hortons", "Golden arches", "Police car", "Ambulance", "Fire truck",
+    "Helicopter", "Plane overhead", "Rainbow", "Roadside fruit stand", "Church steeple",
+    "Funny bumper sticker", "Mattress on a roof", "Broken-down car", "Cyclist", "Tractor",
+    "Dog out the window", "Driver singing", "Speed trap", "Graffiti", "Antique car", "Limo",
+    "RV / camper", "Hay bales", "Fireworks billboard", "Someone eating while driving",
+  ];
+  const BINGO_LINES = (() => {
+    const lines = [];
+    for (let r = 0; r < 5; r++) lines.push([0, 1, 2, 3, 4].map((c) => r * 5 + c));
+    for (let c = 0; c < 5; c++) lines.push([0, 1, 2, 3, 4].map((r) => r * 5 + c));
+    lines.push([0, 6, 12, 18, 24], [4, 8, 12, 16, 20]);
+    return lines;
+  })();
+
+  const TRIVIA = [
+    ["What's the capital of Canada?", "Ottawa"],
+    ["How many time zones does Canada span?", "Six"],
+    ["Which province is Halifax in?", "Nova Scotia (trick question for this car?)"],
+    ["What's the smallest Canadian province?", "Prince Edward Island"],
+    ["How many provinces does Canada have?", "10 (plus 3 territories)"],
+    ["What's the national animal of Canada?", "The beaver"],
+    ["Niagara Falls sits on the border of which two countries?", "Canada and the USA"],
+    ["Which US state is closest to Nova Scotia?", "Maine"],
+    ["Which ocean is Nova Scotia on?", "The Atlantic"],
+    ["How many states does the USA have?", "50"],
+    ["What's the capital of the USA?", "Washington, D.C."],
+    ["Which US state is the Grand Canyon in?", "Arizona"],
+    ["What's the biggest country in the world by area?", "Russia"],
+    ["What side of the road do they drive on in the UK?", "The left"],
+    ["Roughly how many kilometres are in a mile?", "1.6"],
+    ["What does GPS stand for?", "Global Positioning System"],
+    ["What does a red octagon road sign mean?", "Stop"],
+    ["How many wheels does an \"18-wheeler\" have?", "18"],
+    ["What animal is on the Porsche logo?", "A horse"],
+    ["What company makes the Mustang?", "Ford"],
+    ["What's the fastest land animal?", "The cheetah"],
+    ["What's the largest animal to ever live?", "The blue whale"],
+    ["What's the tallest animal?", "The giraffe"],
+    ["What's the largest ocean?", "The Pacific"],
+    ["What's the longest river in the world?", "The Nile (by most measurements)"],
+    ["What's the tallest mountain on Earth?", "Mount Everest"],
+    ["What's the world's largest desert?", "Antarctica — deserts are about dryness, not sand"],
+    ["Which planet is closest to the sun?", "Mercury"],
+    ["Which planet is the hottest?", "Venus"],
+    ["Which planet is famous for its rings?", "Saturn"],
+    ["How many continents are there?", "Seven"],
+    ["How many minutes are in a full day?", "1,440"],
+    ["What fruit do raisins come from?", "Grapes"],
+    ["Which country invented pizza?", "Italy"],
+    ["Who painted the Mona Lisa?", "Leonardo da Vinci"],
+    ["What does the H in H₂O stand for?", "Hydrogen"],
+    ["How many strings does a standard guitar have?", "Six"],
+    ["What's the currency of Japan?", "The yen"],
+    ["Which board game features Boardwalk?", "Monopoly"],
+    ["What's the loudest animal on Earth?", "The sperm whale (louder than a jet engine)"],
+  ];
+
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 
   // ---------- state ----------
   function defaults() {
-    return { stops: [], packing: DEFAULT_PACKING, expenses: [], people: 2, plates: [], catIdx: 0, travelers: [], payerId: null, platesCanada: false };
+    return { stops: [], packing: DEFAULT_PACKING, expenses: [], people: 2, plates: [], catIdx: 0, travelers: [], payerId: null, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [] };
   }
   let state = load();
   function load() {
@@ -519,6 +588,73 @@
     $("#prompt-text").textContent = PROMPTS[i];
   });
 
+  // Road Trip Bingo
+  function newBingoCard() {
+    const card = shuffle(BINGO_POOL).slice(0, 24);
+    card.splice(12, 0, "FREE");
+    state.bingoCard = card;
+    state.bingoMarked = Array(25).fill(false);
+    state.bingoMarked[12] = true;
+    save();
+  }
+  function bingoCount() {
+    return BINGO_LINES.filter((line) => line.every((i) => state.bingoMarked[i])).length;
+  }
+  function renderBingo() {
+    if (!Array.isArray(state.bingoCard) || state.bingoCard.length !== 25) newBingoCard();
+    const grid = $("#bingo-grid");
+    grid.innerHTML = "";
+    state.bingoCard.forEach((name, i) => {
+      const cell = button(
+        "bingo-cell" + (i === 12 ? " free" : "") + (state.bingoMarked[i] ? " marked" : ""),
+        i === 12 ? "⭐" : name,
+        () => {
+          if (i === 12) return;
+          const before = bingoCount();
+          state.bingoMarked[i] = !state.bingoMarked[i];
+          save();
+          renderBingo();
+          if (bingoCount() > before) {
+            const banner = $("#bingo-banner");
+            banner.hidden = false;
+            setTimeout(() => { banner.hidden = true; }, 2500);
+          }
+        }
+      );
+      grid.append(cell);
+    });
+    $("#bingo-count").textContent = bingoCount();
+  }
+  $("#bingo-new").addEventListener("click", () => { newBingoCard(); renderBingo(); });
+
+  // 20 Questions
+  function renderQ20() {
+    $("#q20-status").textContent = state.q20 >= 20 ? "Out of questions — time for final guesses!" : `Question ${state.q20} of 20`;
+  }
+  $("#q20-plus").addEventListener("click", () => { state.q20 = Math.min(20, state.q20 + 1); save(); renderQ20(); });
+  $("#q20-minus").addEventListener("click", () => { state.q20 = Math.max(0, state.q20 - 1); save(); renderQ20(); });
+  $("#q20-reset").addEventListener("click", () => { state.q20 = 0; save(); renderQ20(); });
+
+  // Trivia — no repeats until the whole pool has been used
+  let triviaIdx = -1;
+  $("#trivia-btn").addEventListener("click", () => {
+    if (!Array.isArray(state.triviaSeen)) state.triviaSeen = [];
+    if (state.triviaSeen.length >= TRIVIA.length) state.triviaSeen = [];
+    const remaining = TRIVIA.map((_, i) => i).filter((i) => !state.triviaSeen.includes(i));
+    triviaIdx = remaining[Math.floor(Math.random() * remaining.length)];
+    state.triviaSeen.push(triviaIdx);
+    save();
+    $("#trivia-q").textContent = TRIVIA[triviaIdx][0];
+    $("#trivia-a").hidden = true;
+    $("#trivia-reveal").hidden = false;
+  });
+  $("#trivia-reveal").addEventListener("click", () => {
+    if (triviaIdx < 0) return;
+    $("#trivia-a").textContent = TRIVIA[triviaIdx][1];
+    $("#trivia-a").hidden = false;
+    $("#trivia-reveal").hidden = true;
+  });
+
   function renderPlates() {
     const grid = $("#plate-grid");
     grid.innerHTML = "";
@@ -612,6 +748,8 @@
     renderCatChips();
     renderExpenses();
     renderPlates();
+    renderBingo();
+    renderQ20();
   }
   renderAll();
 

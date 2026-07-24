@@ -99,6 +99,32 @@
         <button id="prompt-btn" class="btn-primary">New question</button>
       </div>
       <div class="game-card">
+        <h2>🎯 Road Trip Bingo</h2>
+        <p class="game-sub"><span id="bingo-count">0</span> bingos — tap a square when you spot it</p>
+        <p id="bingo-banner" class="bingo-banner" hidden>🎉 BINGO!</p>
+        <div id="bingo-grid" class="bingo-grid"></div>
+        <button id="bingo-new" class="btn-ghost">New card (reshuffles everything)</button>
+      </div>
+      <div class="game-card">
+        <h2>❓ 20 Questions</h2>
+        <p class="game-sub">One player thinks of something. Everyone else gets 20 yes-or-no questions to figure it out.</p>
+        <p id="q20-status" class="prompt-text">Question 0 of 20</p>
+        <div class="row-btns">
+          <button id="q20-plus" class="btn-primary">+1 question</button>
+          <button id="q20-minus" class="btn-ghost">Undo</button>
+          <button id="q20-reset" class="btn-ghost">Reset</button>
+        </div>
+      </div>
+      <div class="game-card">
+        <h2>🧠 Trivia</h2>
+        <p id="trivia-q" class="prompt-text">Tap for a question — shout your answers, no phones for cheating.</p>
+        <p id="trivia-a" class="trivia-answer" hidden></p>
+        <div class="row-btns">
+          <button id="trivia-btn" class="btn-primary">New question</button>
+          <button id="trivia-reveal" class="btn-ghost" hidden>Reveal answer</button>
+        </div>
+      </div>
+      <div class="game-card">
         <h2>🚘 License Plate Hunt</h2>
         <p class="game-sub"><span id="plate-count">0</span>/<span id="plate-total">51</span> spotted — tap a plate when you see it</p>
         <div id="plate-grid" class="plate-grid"></div>
