@@ -521,6 +521,40 @@
       chip.type = "button";
       row.append(chip);
     });
+    $("#exp-fuel-row").hidden = state.catIdx !== 0;
+  }
+
+  /* Fuel stats, full-to-full: the fuel bought at a fill covers the distance
+     since the previous fill, so the first fill anchors the odometer only. */
+  function fuelStats() {
+    const gas = CATEGORIES[0];
+    const fills = state.expenses.filter((x) => x.cat === gas && x.odo > 0).sort((a, b) => a.odo - b.odo);
+    if (fills.length < 2) return null;
+    const dist = fills[fills.length - 1].odo - fills[0].odo;
+    if (dist <= 0) return null;
+    const after = fills.slice(1);
+    const litres = after.reduce((s, x) => s + (x.litres > 0 ? x.litres : 0), 0);
+    const cost = after.reduce((s, x) => s + x.amount, 0);
+    const withL = state.expenses.filter((x) => x.cat === gas && x.litres > 0);
+    const totL = withL.reduce((s, x) => s + x.litres, 0);
+    const lPer100 = litres > 0 ? (litres / dist) * 100 : null;
+    return {
+      dist,
+      lPer100,
+      mpg: lPer100 ? 235.215 / lPer100 : null,
+      costPerKm: cost / dist,
+      pricePerL: totL > 0 ? withL.reduce((s, x) => s + x.amount, 0) / totL : null,
+    };
+  }
+  function renderFuel() {
+    const f = fuelStats();
+    $("#fuel-card").hidden = !f;
+    if (!f) return;
+    $("#fuel-econ").textContent = f.lPer100 ? f.lPer100.toFixed(1) : "—";
+    $("#fuel-econ-label").textContent = f.mpg ? `L/100 km (${f.mpg.toFixed(0)} mpg US)` : "L/100 km";
+    $("#fuel-costkm").textContent = fmtMoney(f.costPerKm);
+    $("#fuel-dist").textContent = f.dist.toLocaleString() + " km";
+    $("#fuel-ppl").textContent = f.pricePerL ? fmtMoney(f.pricePerL) : "—";
   }
   function renderExpenses() {
     const list = $("#exp-list");
@@ -565,6 +599,7 @@
       }
     }
     $("#exp-share").hidden = exps.length === 0;
+    renderFuel();
 
     [...exps].reverse().forEach((exp) => {
       const li = document.createElement("li");
@@ -581,7 +616,9 @@
         CATEGORIES.forEach((c) => catSel.append(new Option(c, c)));
         catSel.value = CATEGORIES.includes(exp.cat) ? exp.cat : CATEGORIES[CATEGORIES.length - 1];
         const noteIn = editInput("text", exp.note || "", "Note (optional)");
-        fields.append(amountIn, catSel, noteIn);
+        const odoIn = editInput("number", exp.odo || "", "Odometer (km)");
+        const litresIn = editInput("number", exp.litres || "", "Litres");
+        fields.append(amountIn, catSel, noteIn, odoIn, litresIn);
         let payerSel = null;
         if (state.travelers.length >= 2) {
           payerSel = document.createElement("select");
@@ -595,6 +632,10 @@
           if (amount > 0) exp.amount = Math.round(amount * 100) / 100;
           exp.cat = catSel.value;
           exp.note = noteIn.value.trim();
+          const odo = parseFloat(odoIn.value);
+          const litres = parseFloat(litresIn.value);
+          if (odo > 0) exp.odo = odo; else delete exp.odo;
+          if (litres > 0) exp.litres = Math.round(litres * 100) / 100; else delete exp.litres;
           if (payerSel) exp.paidBy = payerSel.value || null;
           editing = null;
           save();
@@ -619,7 +660,9 @@
       const payer = travelerById(exp.paidBy);
       sub.textContent =
         new Date(exp.at).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }) +
-        (payer ? " · " + payer.name + " paid" : "");
+        (payer ? " · " + payer.name + " paid" : "") +
+        (exp.litres > 0 ? " · " + exp.litres + " L" : "") +
+        (exp.odo > 0 ? " · " + exp.odo.toLocaleString() + " km" : "");
       body.append(title, sub);
       const amount = document.createElement("span");
       amount.className = "exp-amount";
@@ -639,14 +682,21 @@
     e.preventDefault();
     const amount = parseFloat($("#exp-amount").value);
     if (!(amount > 0)) return;
-    state.expenses.push({
+    const exp = {
       id: uid(),
       amount: Math.round(amount * 100) / 100,
       cat: CATEGORIES[state.catIdx],
       note: $("#exp-note").value.trim(),
       paidBy: currentPayerId(),
       at: Date.now(),
-    });
+    };
+    if (state.catIdx === 0) {
+      const odo = parseFloat($("#exp-odo").value);
+      const litres = parseFloat($("#exp-litres").value);
+      if (odo > 0) exp.odo = odo;
+      if (litres > 0) exp.litres = Math.round(litres * 100) / 100;
+    }
+    state.expenses.push(exp);
     e.target.reset();
     save();
     renderExpenses();

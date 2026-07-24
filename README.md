@@ -10,6 +10,7 @@ An offline-first PWA co-pilot for road trips. No build step, no dependencies —
 - **🚗 Driver Mode** — full-screen co-pilot for solo travellers: next stop in huge text, giant Arrived/Navigate buttons, keeps the screen awake while mounted
 - **🎒 Packing** — pre-loaded road-trip checklist (essentials, car prep, comfort) plus your own items
 - **💸 Expenses** — log gas/food/lodging/fun as you go; running total, category breakdown, per-person split, and edit in place. Add traveler names to track **who paid** and get a settle-up ("Jo owes Kate $40") you can share via the share sheet
+- **⛽ Fuel log** — gas expenses take optional odometer + litres; after two fill-ups you get L/100 km (and US mpg), cost per km, distance driven, and average price per litre
 - **🎮 Games** — License Plate Hunt (all 50 states + DC, with an optional 🇨🇦 provinces & territories mode), Road Trip Bingo with win detection, a 20 Questions counter, an offline trivia pack, and "Ask the Buddy" conversation prompts
 - **💾 Backup** — export/import all your data as a JSON file, so a cleared browser cache can't eat your trip
 
