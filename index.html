@@ -30,6 +30,7 @@
           <input id="trip-start" type="date" class="trip-date-input" aria-label="trip start date">
         </div>
         <div id="trip-chips" class="chip-row trip-chips"></div>
+        <div id="trip-modes" class="chip-row trip-chips mode-chips"></div>
       </div>
       <div class="progress-card" id="trip-progress" hidden>
         <div class="progress-bar"><div id="trip-progress-fill"></div></div>
@@ -64,7 +65,7 @@
     <section id="view-expenses" class="view" hidden>
       <div class="totals-card">
         <div class="total-big"><span id="exp-total">$0.00</span><label>total spent</label></div>
-        <div class="total-split">
+        <div class="total-split" id="split-block">
           <span id="exp-per-person">$0.00</span>
           <label>each, split
             <span class="stepper">
@@ -112,19 +113,19 @@
 
     <!-- ===== Games ===== -->
     <section id="view-games" class="view" hidden>
-      <div class="game-card">
+      <div class="game-card" id="game-prompts">
         <h2>🎲 Ask the Buddy</h2>
         <p id="prompt-text" class="prompt-text">Tap the button for a question to throw at the car.</p>
         <button id="prompt-btn" class="btn-primary">New question</button>
       </div>
-      <div class="game-card">
+      <div class="game-card" id="game-bingo">
         <h2>🎯 Road Trip Bingo</h2>
         <p class="game-sub"><span id="bingo-count">0</span> bingos — tap a square when you spot it</p>
         <p id="bingo-banner" class="bingo-banner" hidden>🎉 BINGO!</p>
         <div id="bingo-grid" class="bingo-grid"></div>
         <button id="bingo-new" class="btn-ghost">New card (reshuffles everything)</button>
       </div>
-      <div class="game-card">
+      <div class="game-card" id="game-q20">
         <h2>❓ 20 Questions</h2>
         <p class="game-sub">One player thinks of something. Everyone else gets 20 yes-or-no questions to figure it out.</p>
         <p id="q20-status" class="prompt-text">Question 0 of 20</p>
@@ -134,7 +135,7 @@
           <button id="q20-reset" class="btn-ghost">Reset</button>
         </div>
       </div>
-      <div class="game-card">
+      <div class="game-card" id="game-trivia">
         <h2>🧠 Trivia</h2>
         <div id="trivia-cats" class="chip-row trivia-cats"></div>
         <p id="trivia-cat-tag" class="trivia-cat-tag"></p>
@@ -145,14 +146,14 @@
           <button id="trivia-reveal" class="btn-ghost" hidden>Reveal answer</button>
         </div>
       </div>
-      <div class="game-card">
+      <div class="game-card" id="game-plates">
         <h2>🚘 License Plate Hunt</h2>
         <p class="game-sub"><span id="plate-count">0</span>/<span id="plate-total">51</span> spotted — tap a plate when you see it</p>
         <div id="plate-grid" class="plate-grid"></div>
         <label class="toggle"><input type="checkbox" id="plates-canada"> 🇨🇦 Include Canadian provinces &amp; territories</label>
         <button id="plate-reset" class="btn-ghost">Reset hunt</button>
       </div>
-      <div class="game-card">
+      <div class="game-card" id="game-backup">
         <h2>💾 Backup</h2>
         <p class="game-sub">Everything lives only on this phone — export a backup once in a while, or move your trip to another device.</p>
         <div class="row-btns">

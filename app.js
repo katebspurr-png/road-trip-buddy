@@ -176,8 +176,11 @@
   }
 
   // ---------- state ----------
+  const MODES = [["solo", "🧍 Solo"], ["copilot", "🧑‍✈️ Co-pilot"], ["family", "👨‍👩‍👧 Family"]];
+  const FAMILY_PACKING = ["Car seats / boosters", "Tablets + chargers", "Kids' headphones", "Wet wipes ×2", "Emergency snacks", "Change of clothes per kid", "Favourite stuffed animal", "Travel games / colouring", "Sunscreen", "Motion-sickness bags"];
+
   function newTrip(name) {
-    return { id: uid(), name: name || "My Trip", start: "", stops: [], expenses: [], travelers: [], payerId: null, people: 2, createdAt: Date.now() };
+    return { id: uid(), name: name || "My Trip", start: "", mode: "copilot", stops: [], expenses: [], travelers: [], payerId: null, people: 2, createdAt: Date.now() };
   }
   function defaults() {
     const t = newTrip("My Trip");
@@ -189,6 +192,7 @@
     if (s.v === 2 && Array.isArray(s.trips) && s.trips.length) {
       const merged = { ...defaults(), ...s };
       if (!merged.trips.some((t) => t.id === merged.currentTripId)) merged.currentTripId = merged.trips[0].id;
+      merged.trips.forEach((t) => { if (!t.mode) t.mode = "copilot"; });
       return merged;
     }
     const out = { ...defaults(), packing: s.packing || DEFAULT_PACKING, plates: s.plates || [], catIdx: s.catIdx || 0, platesCanada: !!s.platesCanada, bingoCard: s.bingoCard || null, bingoMarked: s.bingoMarked || [], q20: s.q20 || 0, triviaSeen: s.triviaSeen || [], triviaCat: s.triviaCat || "All" };
@@ -210,6 +214,17 @@
   }
   function trip() {
     return state.trips.find((t) => t.id === state.currentTripId) || state.trips[0];
+  }
+  function soloMode() {
+    return trip().mode === "solo";
+  }
+  /* Family trips get an extra expense category; the base list stays fixed so gas is always cats()[0]. */
+  function cats() {
+    return trip().mode === "family" ? [...CATEGORIES, "🧸 Kids"] : CATEGORIES;
+  }
+  function seedFamilyPacking() {
+    if (state.packing.some((p) => p.group === "Kids")) return;
+    FAMILY_PACKING.forEach((name) => state.packing.push({ id: uid(), name, group: "Kids", checked: false }));
   }
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage full/blocked */ }
@@ -288,6 +303,29 @@
     });
     chips.append(add);
     $("#trip-delete").hidden = state.trips.length < 2;
+
+    const modes = $("#trip-modes");
+    modes.innerHTML = "";
+    MODES.forEach(([key, label]) => {
+      const chip = button("chip" + (t.mode === key ? " active" : ""), label, () => {
+        trip().mode = key;
+        if (key === "family") seedFamilyPacking();
+        if (state.catIdx >= cats().length) state.catIdx = 0;
+        save();
+        renderAll();
+      });
+      modes.append(chip);
+    });
+  }
+  /* Modes only hide or emphasize — no data is changed by switching. */
+  function applyMode() {
+    const solo = soloMode();
+    document.body.classList.toggle("mode-solo", solo);
+    document.querySelector(".travelers-card").hidden = solo;
+    $("#game-prompts").hidden = solo;
+    $("#game-bingo").hidden = solo;
+    $("#game-q20").hidden = solo;
+    $("#view-games").classList.toggle("family-order", trip().mode === "family");
   }
   $("#trip-name").addEventListener("input", () => {
     const name = $("#trip-name").value.trim();
@@ -544,13 +582,13 @@
   });
 
   function currentPayerId() {
-    if (trip().travelers.length < 2) return null;
+    if (soloMode() || trip().travelers.length < 2) return null;
     if (travelerById(trip().payerId)) return trip().payerId;
     return trip().travelers[0].id;
   }
   function renderPayerChips() {
     const wrap = $("#exp-paidby");
-    const hasTravelers = trip().travelers.length >= 2;
+    const hasTravelers = !soloMode() && trip().travelers.length >= 2;
     wrap.hidden = !hasTravelers;
     wrap.innerHTML = "";
     if (!hasTravelers) return;
@@ -572,7 +610,7 @@
   // ---------- expenses ----------
   function computeSettleUp() {
     const travelers = trip().travelers;
-    if (travelers.length < 2) return null;
+    if (soloMode() || travelers.length < 2) return null;
     const ids = new Set(travelers.map((t) => t.id));
     const attributed = trip().expenses.filter((x) => x.paidBy && ids.has(x.paidBy));
     const balance = {};
@@ -605,7 +643,8 @@
   function renderCatChips() {
     const row = $("#exp-cats");
     row.innerHTML = "";
-    CATEGORIES.forEach((cat, i) => {
+    if (state.catIdx >= cats().length) state.catIdx = 0;
+    cats().forEach((cat, i) => {
       const chip = button("chip" + (i === state.catIdx ? " active" : ""), cat, () => {
         state.catIdx = i;
         save();
@@ -655,10 +694,12 @@
     const exps = trip().expenses;
     $("#exp-empty").hidden = exps.length > 0;
 
-    const hasTravelers = trip().travelers.length >= 2;
+    const solo = soloMode();
+    const hasTravelers = !solo && trip().travelers.length >= 2;
     const splitWays = hasTravelers ? trip().travelers.length : trip().people;
     const total = exps.reduce((sum, x) => sum + x.amount, 0);
     $("#exp-total").textContent = fmtMoney(total);
+    $("#split-block").hidden = solo;
     $("#people-count").textContent = splitWays;
     $("#exp-per-person").textContent = fmtMoney(total / splitWays);
     $("#people-minus").hidden = hasTravelers;
@@ -706,8 +747,9 @@
         amountIn.min = "0.01";
         amountIn.inputMode = "decimal";
         const catSel = document.createElement("select");
-        CATEGORIES.forEach((c) => catSel.append(new Option(c, c)));
-        catSel.value = CATEGORIES.includes(exp.cat) ? exp.cat : CATEGORIES[CATEGORIES.length - 1];
+        const catList = cats().includes(exp.cat) ? cats() : [...cats(), exp.cat];
+        catList.forEach((c) => catSel.append(new Option(c, c)));
+        catSel.value = exp.cat;
         const noteIn = editInput("text", exp.note || "", "Note (optional)");
         const odoIn = editInput("number", exp.odo || "", "Odometer (km)");
         const litresIn = editInput("number", exp.litres || "", "Litres");
@@ -778,7 +820,7 @@
     const exp = {
       id: uid(),
       amount: Math.round(amount * 100) / 100,
-      cat: CATEGORIES[state.catIdx],
+      cat: cats()[state.catIdx],
       note: $("#exp-note").value.trim(),
       paidBy: currentPayerId(),
       at: Date.now(),
@@ -810,14 +852,14 @@
     const total = trip().expenses.reduce((sum, x) => sum + x.amount, 0);
     const byCat = {};
     trip().expenses.forEach((x) => { byCat[x.cat] = (byCat[x.cat] || 0) + x.amount; });
-    const hasTravelers = trip().travelers.length >= 2;
+    const hasTravelers = !soloMode() && trip().travelers.length >= 2;
     const splitWays = hasTravelers ? trip().travelers.length : trip().people;
     const lines = [
       "🛣️ Road Trip Buddy — expenses",
       "Total: " + fmtMoney(total),
       ...Object.entries(byCat).map(([c, v]) => `  ${c} ${fmtMoney(v)}`),
-      `Split ${splitWays} ways: ${fmtMoney(total / splitWays)} each`,
     ];
+    if (!soloMode()) lines.push(`Split ${splitWays} ways: ${fmtMoney(total / splitWays)} each`);
     const settle = computeSettleUp();
     if (settle && settle.lines.length) {
       lines.push("Settle up:");
@@ -1034,6 +1076,7 @@
   };
 
   function renderAll() {
+    applyMode();
     renderTripMeta();
     renderTrip();
     renderPacking();

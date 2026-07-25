@@ -372,6 +372,16 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 }
 .trip-chips .chip { font-size: 0.8rem; padding: 7px 11px; }
 .trip-delete { color: var(--danger); border-color: var(--danger); opacity: 0.7; }
+.mode-chips { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+
+/* solo mode: driver mode is the headline action */
+.mode-solo .driver-enter { background: var(--accent); color: #fff; }
+
+/* family mode: kid games first */
+#view-games.family-order { display: flex; flex-direction: column; }
+#view-games.family-order #game-bingo { order: -3; }
+#view-games.family-order #game-plates { order: -2; }
+#view-games.family-order #game-q20 { order: -1; }
 
 /* ---- driver mode ---- */
 .driver-enter {
