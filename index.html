@@ -19,6 +19,7 @@
   <header class="app-header">
     <h1>🛣️ Road Trip Buddy</h1>
     <span id="header-sub" class="header-sub"></span>
+    <button id="settings-btn" class="settings-btn" aria-label="settings">⚙️</button>
   </header>
 
   <main id="main">
@@ -153,18 +154,48 @@
         <label class="toggle"><input type="checkbox" id="plates-canada"> 🇨🇦 Include Canadian provinces &amp; territories</label>
         <button id="plate-reset" class="btn-ghost">Reset hunt</button>
       </div>
-      <div class="game-card" id="game-backup">
-        <h2>💾 Backup</h2>
-        <p class="game-sub">Everything lives only on this phone — export a backup once in a while, or move your trip to another device.</p>
-        <div class="row-btns">
-          <button id="backup-export" class="btn-ghost">Export backup</button>
-          <button id="backup-import" class="btn-ghost">Import backup</button>
-        </div>
-        <p id="backup-status" class="backup-status" role="status"></p>
-        <input id="backup-file" type="file" accept="application/json,.json" hidden>
-      </div>
     </section>
   </main>
+
+  <div id="welcome" class="welcome-panel" hidden>
+    <div class="welcome-inner">
+      <div class="welcome-emoji">🛣️</div>
+      <h2 class="welcome-title">Road Trip Buddy</h2>
+      <p class="welcome-sub">Your offline co-pilot — stops, packing, expenses, and games that all keep working with zero signal.</p>
+      <label class="welcome-label" for="welcome-name">Name your first trip</label>
+      <input id="welcome-name" type="text" placeholder="e.g. Cabot Trail Loop" maxlength="40" autocomplete="off">
+      <label class="welcome-label" for="welcome-start">Start date <span class="welcome-optional">(optional — get a countdown)</span></label>
+      <input id="welcome-start" type="date" class="trip-date-input">
+      <label class="welcome-label">Who's going?</label>
+      <div id="welcome-modes" class="welcome-modes"></div>
+      <button id="welcome-go" class="btn-primary">Let's go 🚀</button>
+      <button id="welcome-skip" class="btn-ghost">Skip — just show me the app</button>
+    </div>
+  </div>
+
+  <div id="settings-panel" class="settings-panel" hidden>
+    <div class="settings-head">
+      <h2>⚙️ Settings</h2>
+      <button id="settings-close" class="settings-close">✕ Close</button>
+    </div>
+    <div class="game-card">
+      <h2>Features</h2>
+      <p class="game-sub">Turn off what you don't use — the tab disappears, but nothing is deleted. Flip it back on any time.</p>
+      <label class="toggle"><input type="checkbox" id="set-packing"> 🎒 Packing list</label>
+      <label class="toggle"><input type="checkbox" id="set-expenses"> 💸 Expense tracking</label>
+      <label class="toggle"><input type="checkbox" id="set-games"> 🎮 Games</label>
+    </div>
+    <div class="game-card" id="game-backup">
+      <h2>💾 Backup</h2>
+      <p class="game-sub">Everything lives only on this phone — export a backup once in a while, or move your trip to another device.</p>
+      <div class="row-btns">
+        <button id="backup-export" class="btn-ghost">Export backup</button>
+        <button id="backup-import" class="btn-ghost">Import backup</button>
+      </div>
+      <p id="backup-status" class="backup-status" role="status"></p>
+      <input id="backup-file" type="file" accept="application/json,.json" hidden>
+    </div>
+  </div>
 
   <div id="driver-mode" class="driver-mode" hidden>
     <button id="driver-exit" class="driver-exit">✕ Exit</button>
