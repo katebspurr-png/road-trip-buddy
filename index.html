@@ -24,6 +24,13 @@
   <main id="main">
     <!-- ===== Trip / Stops ===== -->
     <section id="view-trip" class="view">
+      <div class="trip-card">
+        <div class="trip-meta">
+          <input id="trip-name" class="trip-name-input" maxlength="40" aria-label="trip name" autocomplete="off">
+          <input id="trip-start" type="date" class="trip-date-input" aria-label="trip start date">
+        </div>
+        <div id="trip-chips" class="chip-row trip-chips"></div>
+      </div>
       <div class="progress-card" id="trip-progress" hidden>
         <div class="progress-bar"><div id="trip-progress-fill"></div></div>
         <span id="trip-progress-label"></span>
@@ -36,6 +43,7 @@
         <input id="stop-note" type="text" placeholder="Note (optional — exit 42, lunch, etc.)" maxlength="120" autocomplete="off">
         <button type="submit" class="btn-primary">+ Add stop</button>
       </form>
+      <button id="trip-delete" class="btn-ghost trip-delete" hidden>Delete this trip</button>
     </section>
 
     <!-- ===== Packing ===== -->

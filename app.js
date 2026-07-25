@@ -176,19 +176,50 @@
   }
 
   // ---------- state ----------
+  function newTrip(name) {
+    return { id: uid(), name: name || "My Trip", start: "", stops: [], expenses: [], travelers: [], payerId: null, people: 2, createdAt: Date.now() };
+  }
   function defaults() {
-    return { stops: [], packing: DEFAULT_PACKING, expenses: [], people: 2, plates: [], catIdx: 0, travelers: [], payerId: null, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [], triviaCat: "All" };
+    const t = newTrip("My Trip");
+    return { v: 2, trips: [t], currentTripId: t.id, packing: DEFAULT_PACKING, plates: [], catIdx: 0, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [], triviaCat: "All" };
+  }
+  /* v1 stored a single implicit trip at the top level — wrap it into trips[] */
+  function migrate(s) {
+    if (!s || typeof s !== "object") return defaults();
+    if (s.v === 2 && Array.isArray(s.trips) && s.trips.length) {
+      const merged = { ...defaults(), ...s };
+      if (!merged.trips.some((t) => t.id === merged.currentTripId)) merged.currentTripId = merged.trips[0].id;
+      return merged;
+    }
+    const out = { ...defaults(), packing: s.packing || DEFAULT_PACKING, plates: s.plates || [], catIdx: s.catIdx || 0, platesCanada: !!s.platesCanada, bingoCard: s.bingoCard || null, bingoMarked: s.bingoMarked || [], q20: s.q20 || 0, triviaSeen: s.triviaSeen || [], triviaCat: s.triviaCat || "All" };
+    const t = out.trips[0];
+    t.stops = s.stops || [];
+    t.expenses = s.expenses || [];
+    t.travelers = s.travelers || [];
+    t.payerId = s.payerId ?? null;
+    t.people = s.people || 2;
+    return out;
   }
   let state = load();
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return { ...defaults(), ...JSON.parse(raw) };
+      if (raw) return migrate(JSON.parse(raw));
     } catch (e) { /* corrupted state — start fresh */ }
     return defaults();
   }
+  function trip() {
+    return state.trips.find((t) => t.id === state.currentTripId) || state.trips[0];
+  }
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage full/blocked */ }
+    try {
+      const t = trip();
+      window.webkit.messageHandlers.stateSync.postMessage(JSON.stringify({
+        trip: t.name,
+        stops: t.stops.map((s) => ({ name: s.name, note: s.note || "", done: !!s.done })),
+      }));
+    } catch (e) { /* not running in the iOS wrapper */ }
   }
 
   const $ = (sel) => document.querySelector(sel);
@@ -220,10 +251,68 @@
   }
 
   // ---------- trip ----------
+  function countdownText(t) {
+    if (!t.start) return "";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((new Date(t.start + "T00:00:00") - today) / 86400000);
+    if (diff > 1) return `${diff} days to go`;
+    if (diff === 1) return "Trip starts tomorrow!";
+    if (diff === 0) return "Day 1 🎉";
+    return `Day ${1 - diff}`;
+  }
+  function renderTripMeta() {
+    const t = trip();
+    $("#trip-name").value = t.name;
+    $("#trip-start").value = t.start || "";
+    const chips = $("#trip-chips");
+    chips.innerHTML = "";
+    state.trips.forEach((tr) => {
+      const chip = button("chip" + (tr.id === t.id ? " active" : ""), tr.name, () => {
+        state.currentTripId = tr.id;
+        editing = null;
+        save();
+        renderAll();
+      });
+      chips.append(chip);
+    });
+    const add = button("chip", "+ New trip", () => {
+      const nt = newTrip("Trip " + (state.trips.length + 1));
+      state.trips.push(nt);
+      state.currentTripId = nt.id;
+      editing = null;
+      save();
+      renderAll();
+      $("#trip-name").focus();
+      $("#trip-name").select();
+    });
+    chips.append(add);
+    $("#trip-delete").hidden = state.trips.length < 2;
+  }
+  $("#trip-name").addEventListener("input", () => {
+    const name = $("#trip-name").value.trim();
+    if (name) { trip().name = name; save(); }
+  });
+  $("#trip-name").addEventListener("blur", () => { renderTripMeta(); renderTrip(); });
+  $("#trip-start").addEventListener("change", () => {
+    trip().start = $("#trip-start").value;
+    save();
+    renderTrip();
+  });
+  $("#trip-delete").addEventListener("click", () => {
+    if (state.trips.length < 2) return;
+    if (!confirm(`Delete "${trip().name}" and all its stops and expenses?`)) return;
+    state.trips = state.trips.filter((t) => t.id !== trip().id);
+    state.currentTripId = state.trips[0].id;
+    editing = null;
+    save();
+    renderAll();
+  });
+
   function renderTrip() {
     const list = $("#stop-list");
     list.innerHTML = "";
-    const stops = state.stops;
+    const stops = trip().stops;
     $("#trip-empty").hidden = stops.length > 0;
     $("#trip-progress").hidden = stops.length === 0;
     const done = stops.filter((s) => s.done).length;
@@ -231,7 +320,11 @@
       $("#trip-progress-fill").style.width = (done / stops.length) * 100 + "%";
       $("#trip-progress-label").textContent = `${done}/${stops.length} stops`;
     }
-    $("#header-sub").textContent = stops.length ? `${stops.length - done} stops to go` : "";
+    const headerParts = [];
+    const cd = countdownText(trip());
+    if (cd) headerParts.push(cd);
+    if (stops.length) headerParts.push(`${stops.length - done} stops to go`);
+    $("#header-sub").textContent = headerParts.join(" · ");
     $("#driver-enter").hidden = stops.length === 0;
 
     stops.forEach((stop, i) => {
@@ -304,7 +397,7 @@
     e.preventDefault();
     const name = $("#stop-name").value.trim();
     if (!name) return;
-    state.stops.push({ id: uid(), name, note: $("#stop-note").value.trim(), done: false });
+    trip().stops.push({ id: uid(), name, note: $("#stop-note").value.trim(), done: false });
     e.target.reset();
     save();
     renderTrip();
@@ -320,22 +413,22 @@
     try { window.webkit.messageHandlers.keepAwake.postMessage(on); } catch (e) { /* not running in the iOS wrapper */ }
   }
   function nextStop() {
-    return state.stops.find((s) => !s.done) || null;
+    return trip().stops.find((s) => !s.done) || null;
   }
   function renderDriver() {
     const stop = nextStop();
-    const done = state.stops.filter((s) => s.done).length;
+    const done = trip().stops.filter((s) => s.done).length;
     if (!stop) {
-      $("#driver-stop").textContent = state.stops.length ? "That's the trip! 🎉" : "No stops planned";
+      $("#driver-stop").textContent = trip().stops.length ? "That's the trip! 🎉" : "No stops planned";
       $("#driver-note").textContent = "";
-      $("#driver-progress").textContent = state.stops.length ? `All ${state.stops.length} stops done` : "";
+      $("#driver-progress").textContent = trip().stops.length ? `All ${trip().stops.length} stops done` : "";
       $("#driver-nav").hidden = true;
       $("#driver-arrived").hidden = true;
       return;
     }
     $("#driver-stop").textContent = stop.name;
     $("#driver-note").textContent = stop.note || "";
-    $("#driver-progress").textContent = `Stop ${done + 1} of ${state.stops.length}`;
+    $("#driver-progress").textContent = `Stop ${done + 1} of ${trip().stops.length}`;
     $("#driver-nav").hidden = false;
     $("#driver-nav").href = mapsUrl(stop.name);
     $("#driver-arrived").hidden = false;
@@ -418,15 +511,15 @@
 
   // ---------- travelers ----------
   function travelerById(id) {
-    return state.travelers.find((t) => t.id === id) || null;
+    return trip().travelers.find((t) => t.id === id) || null;
   }
   function renderTravelers() {
     const row = $("#traveler-chips");
     row.innerHTML = "";
-    state.travelers.forEach((t) => {
+    trip().travelers.forEach((t) => {
       const chip = button("chip", t.name + " ✕", () => {
-        state.travelers = state.travelers.filter((x) => x.id !== t.id);
-        if (state.payerId === t.id) state.payerId = null;
+        trip().travelers = trip().travelers.filter((x) => x.id !== t.id);
+        if (trip().payerId === t.id) trip().payerId = null;
         save();
         renderTravelers();
         renderPayerChips();
@@ -435,14 +528,14 @@
       chip.setAttribute("aria-label", "remove " + t.name);
       row.append(chip);
     });
-    $("#traveler-empty").hidden = state.travelers.length > 0;
+    $("#traveler-empty").hidden = trip().travelers.length > 0;
   }
   $("#traveler-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const name = $("#traveler-name").value.trim();
     if (!name) return;
-    if (state.travelers.some((t) => t.name.toLowerCase() === name.toLowerCase())) return;
-    state.travelers.push({ id: uid(), name });
+    if (trip().travelers.some((t) => t.name.toLowerCase() === name.toLowerCase())) return;
+    trip().travelers.push({ id: uid(), name });
     e.target.reset();
     save();
     renderTravelers();
@@ -451,13 +544,13 @@
   });
 
   function currentPayerId() {
-    if (state.travelers.length < 2) return null;
-    if (travelerById(state.payerId)) return state.payerId;
-    return state.travelers[0].id;
+    if (trip().travelers.length < 2) return null;
+    if (travelerById(trip().payerId)) return trip().payerId;
+    return trip().travelers[0].id;
   }
   function renderPayerChips() {
     const wrap = $("#exp-paidby");
-    const hasTravelers = state.travelers.length >= 2;
+    const hasTravelers = trip().travelers.length >= 2;
     wrap.hidden = !hasTravelers;
     wrap.innerHTML = "";
     if (!hasTravelers) return;
@@ -466,9 +559,9 @@
     label.textContent = "Paid by";
     wrap.append(label);
     const active = currentPayerId();
-    state.travelers.forEach((t) => {
+    trip().travelers.forEach((t) => {
       const chip = button("chip" + (t.id === active ? " active" : ""), t.name, () => {
-        state.payerId = t.id;
+        trip().payerId = t.id;
         save();
         renderPayerChips();
       });
@@ -478,10 +571,10 @@
 
   // ---------- expenses ----------
   function computeSettleUp() {
-    const travelers = state.travelers;
+    const travelers = trip().travelers;
     if (travelers.length < 2) return null;
     const ids = new Set(travelers.map((t) => t.id));
-    const attributed = state.expenses.filter((x) => x.paidBy && ids.has(x.paidBy));
+    const attributed = trip().expenses.filter((x) => x.paidBy && ids.has(x.paidBy));
     const balance = {};
     travelers.forEach((t) => { balance[t.id] = 0; });
     attributed.forEach((x) => {
@@ -506,7 +599,7 @@
       if (debtors[di].amt < 0.005) di++;
       if (creditors[ci].amt < 0.005) ci++;
     }
-    return { lines, unassigned: state.expenses.length - attributed.length };
+    return { lines, unassigned: trip().expenses.length - attributed.length };
   }
 
   function renderCatChips() {
@@ -528,14 +621,14 @@
      since the previous fill, so the first fill anchors the odometer only. */
   function fuelStats() {
     const gas = CATEGORIES[0];
-    const fills = state.expenses.filter((x) => x.cat === gas && x.odo > 0).sort((a, b) => a.odo - b.odo);
+    const fills = trip().expenses.filter((x) => x.cat === gas && x.odo > 0).sort((a, b) => a.odo - b.odo);
     if (fills.length < 2) return null;
     const dist = fills[fills.length - 1].odo - fills[0].odo;
     if (dist <= 0) return null;
     const after = fills.slice(1);
     const litres = after.reduce((s, x) => s + (x.litres > 0 ? x.litres : 0), 0);
     const cost = after.reduce((s, x) => s + x.amount, 0);
-    const withL = state.expenses.filter((x) => x.cat === gas && x.litres > 0);
+    const withL = trip().expenses.filter((x) => x.cat === gas && x.litres > 0);
     const totL = withL.reduce((s, x) => s + x.litres, 0);
     const lPer100 = litres > 0 ? (litres / dist) * 100 : null;
     return {
@@ -559,11 +652,11 @@
   function renderExpenses() {
     const list = $("#exp-list");
     list.innerHTML = "";
-    const exps = state.expenses;
+    const exps = trip().expenses;
     $("#exp-empty").hidden = exps.length > 0;
 
-    const hasTravelers = state.travelers.length >= 2;
-    const splitWays = hasTravelers ? state.travelers.length : state.people;
+    const hasTravelers = trip().travelers.length >= 2;
+    const splitWays = hasTravelers ? trip().travelers.length : trip().people;
     const total = exps.reduce((sum, x) => sum + x.amount, 0);
     $("#exp-total").textContent = fmtMoney(total);
     $("#people-count").textContent = splitWays;
@@ -586,7 +679,7 @@
         div.textContent = `${l.from} owes ${l.to} ${fmtMoney(l.amt)}`;
         settleBox.append(div);
       });
-      if (!settle.lines.length && state.expenses.length) {
+      if (!settle.lines.length && trip().expenses.length) {
         const div = document.createElement("div");
         div.textContent = "All square ✓";
         settleBox.append(div);
@@ -620,10 +713,10 @@
         const litresIn = editInput("number", exp.litres || "", "Litres");
         fields.append(amountIn, catSel, noteIn, odoIn, litresIn);
         let payerSel = null;
-        if (state.travelers.length >= 2) {
+        if (trip().travelers.length >= 2) {
           payerSel = document.createElement("select");
           payerSel.append(new Option("Paid by — not set", ""));
-          state.travelers.forEach((t) => payerSel.append(new Option("Paid by " + t.name, t.id)));
+          trip().travelers.forEach((t) => payerSel.append(new Option("Paid by " + t.name, t.id)));
           payerSel.value = travelerById(exp.paidBy) ? exp.paidBy : "";
           fields.append(payerSel);
         }
@@ -670,7 +763,7 @@
       const edit = button("mini-btn", "✎", () => { editing = { type: "exp", id: exp.id }; renderExpenses(); });
       edit.setAttribute("aria-label", "edit expense");
       const del = button("mini-btn danger", "✕", () => {
-        state.expenses = state.expenses.filter((x) => x.id !== exp.id);
+        trip().expenses = trip().expenses.filter((x) => x.id !== exp.id);
         save();
         renderExpenses();
       });
@@ -696,29 +789,29 @@
       if (odo > 0) exp.odo = odo;
       if (litres > 0) exp.litres = Math.round(litres * 100) / 100;
     }
-    state.expenses.push(exp);
+    trip().expenses.push(exp);
     e.target.reset();
     save();
     renderExpenses();
   });
   $("#people-minus").addEventListener("click", () => {
-    state.people = Math.max(1, state.people - 1);
+    trip().people = Math.max(1, trip().people - 1);
     save();
     renderExpenses();
   });
   $("#people-plus").addEventListener("click", () => {
-    state.people = Math.min(20, state.people + 1);
+    trip().people = Math.min(20, trip().people + 1);
     save();
     renderExpenses();
   });
 
   // ---------- share settle-up ----------
   function summaryText() {
-    const total = state.expenses.reduce((sum, x) => sum + x.amount, 0);
+    const total = trip().expenses.reduce((sum, x) => sum + x.amount, 0);
     const byCat = {};
-    state.expenses.forEach((x) => { byCat[x.cat] = (byCat[x.cat] || 0) + x.amount; });
-    const hasTravelers = state.travelers.length >= 2;
-    const splitWays = hasTravelers ? state.travelers.length : state.people;
+    trip().expenses.forEach((x) => { byCat[x.cat] = (byCat[x.cat] || 0) + x.amount; });
+    const hasTravelers = trip().travelers.length >= 2;
+    const splitWays = hasTravelers ? trip().travelers.length : trip().people;
     const lines = [
       "🛣️ Road Trip Buddy — expenses",
       "Total: " + fmtMoney(total),
@@ -893,12 +986,14 @@
     reader.onload = () => {
       let data;
       try { data = JSON.parse(reader.result); } catch (err) { data = null; }
-      if (!data || !Array.isArray(data.stops) || !Array.isArray(data.packing) || !Array.isArray(data.expenses)) {
+      const v1 = data && Array.isArray(data.stops) && Array.isArray(data.expenses);
+      const v2 = data && data.v === 2 && Array.isArray(data.trips) && data.trips.length > 0;
+      if (!v1 && !v2) {
         $("#backup-status").textContent = "That file doesn't look like a Road Trip Buddy backup.";
         return;
       }
       if (!confirm("Replace everything in the app with this backup?")) return;
-      state = { ...defaults(), ...data };
+      state = migrate(data);
       editing = null;
       save();
       renderAll();
@@ -925,7 +1020,21 @@
     return el;
   }
 
+  /* Siri "mark arrived" can run while the page is suspended — the iOS wrapper
+     queues stop names and calls this when the app returns to the foreground. */
+  window.rtbApplyArrivals = (names) => {
+    if (!Array.isArray(names)) return;
+    names.forEach((name) => {
+      const stop = trip().stops.find((s) => !s.done && s.name === name) || trip().stops.find((s) => !s.done);
+      if (stop) stop.done = true;
+    });
+    save();
+    renderTrip();
+    if (!driverEl.hidden) renderDriver();
+  };
+
   function renderAll() {
+    renderTripMeta();
     renderTrip();
     renderPacking();
     renderTravelers();
@@ -938,6 +1047,7 @@
     renderTriviaCats();
   }
   renderAll();
+  save(); // seed the native state mirror on launch
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));

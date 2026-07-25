@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1FE35FEC125910A3B60C79D7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9D4E074B5C77C6E02A1EBD8B /* Assets.xcassets */; };
 		297CB0F7A06DC682FD289DFE /* RoadTripBuddyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5AFE8FA3232E939CABA479 /* RoadTripBuddyApp.swift */; };
+		B5137CF336C06B1CF5F8A8EC /* SiriIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF47828C7711574AA79AC7F /* SiriIntents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -16,6 +17,7 @@
 		65574905E7B1C68B3209E701 /* RoadTripBuddy.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = RoadTripBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D4E074B5C77C6E02A1EBD8B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CD5AFE8FA3232E939CABA479 /* RoadTripBuddyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadTripBuddyApp.swift; sourceTree = "<group>"; };
+		CDF47828C7711574AA79AC7F /* SiriIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriIntents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -25,6 +27,7 @@
 				9D4E074B5C77C6E02A1EBD8B /* Assets.xcassets */,
 				3D159D46E9A5751F95087704 /* Info.plist */,
 				CD5AFE8FA3232E939CABA479 /* RoadTripBuddyApp.swift */,
+				CDF47828C7711574AA79AC7F /* SiriIntents.swift */,
 			);
 			path = RoadTripBuddy;
 			sourceTree = "<group>";
@@ -140,6 +143,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				297CB0F7A06DC682FD289DFE /* RoadTripBuddyApp.swift in Sources */,
+				B5137CF336C06B1CF5F8A8EC /* SiriIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
