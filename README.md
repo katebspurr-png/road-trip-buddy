@@ -6,7 +6,8 @@ An offline-first PWA co-pilot for road trips. No build step, no dependencies —
 
 ## Features
 
-- **🗺️ Trip** — plan your stops in order, add notes, check them off as you arrive, edit in place, one-tap map link for each stop (Apple Maps on Apple devices, Google Maps elsewhere)
+- **🗺️ Trips** — multiple trips with their own stops, expenses, and travelers; name each one, set a start date for a countdown ("3 days to go" → "Day 2"), plan stops in order, check them off as you arrive, edit in place, one-tap map link for each stop (Apple Maps on Apple devices, Google Maps elsewhere)
+- **🎤 Siri (iOS app)** — "Hey Siri, what's my next stop in Road Trip Buddy" and "Mark arrived in Road Trip Buddy", fully hands-free
 - **🚗 Driver Mode** — full-screen co-pilot for solo travellers: next stop in huge text, giant Arrived/Navigate buttons, keeps the screen awake while mounted
 - **🎒 Packing** — pre-loaded road-trip checklist (essentials, car prep, comfort) plus your own items
 - **💸 Expenses** — log gas/food/lodging/fun as you go; running total, category breakdown, per-person split, and edit in place. Add traveler names to track **who paid** and get a settle-up ("Jo owes Kate $40") you can share via the share sheet

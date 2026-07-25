@@ -4,11 +4,33 @@ import UIKit
 
 @main
 struct RoadTripBuddyApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             WebView()
                 .ignoresSafeArea()
         }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { WebViewStore.shared.applyPendingArrivals() }
+        }
+    }
+}
+
+/// Holds the live web view so Siri intents (which run outside the view tree)
+/// can push queued "mark arrived" actions into the page when the app foregrounds.
+final class WebViewStore {
+    static let shared = WebViewStore()
+    weak var webView: WKWebView?
+
+    func applyPendingArrivals() {
+        guard let webView,
+              let pending = UserDefaults.standard.stringArray(forKey: "rtb.pendingArrivals"),
+              !pending.isEmpty,
+              let data = try? JSONSerialization.data(withJSONObject: pending),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webView.evaluateJavaScript("window.rtbApplyArrivals && window.rtbApplyArrivals(\(json))")
+        UserDefaults.standard.removeObject(forKey: "rtb.pendingArrivals")
     }
 }
 
@@ -19,6 +41,7 @@ struct WebView: UIViewRepresentable {
         let controller = WKUserContentController()
         controller.add(context.coordinator, name: "share")
         controller.add(context.coordinator, name: "keepAwake")
+        controller.add(context.coordinator, name: "stateSync")
         // Route navigator.share (settle-up summary, backup file) to the native share sheet.
         let shareShim = """
         navigator.share = async (data) => {
@@ -45,12 +68,18 @@ struct WebView: UIViewRepresentable {
         if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "www") {
             webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
         }
+        WebViewStore.shared.webView = webView
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {}
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+        // Apply any Siri actions that queued while the app was closed.
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            WebViewStore.shared.applyPendingArrivals()
+        }
+
         // The app itself runs from file:// — any http(s) link (map ↗) belongs in the system browser.
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if let url = navigationAction.request.url,
@@ -85,6 +114,13 @@ struct WebView: UIViewRepresentable {
             // Driver mode asks the OS not to sleep the screen while the phone is mounted.
             if message.name == "keepAwake" {
                 UIApplication.shared.isIdleTimerDisabled = (message.body as? Bool) ?? false
+                return
+            }
+            // The web app mirrors its trip state here so Siri intents can read it.
+            if message.name == "stateSync" {
+                if let json = message.body as? String {
+                    UserDefaults.standard.set(json, forKey: "rtb.state")
+                }
                 return
             }
             guard message.name == "share",
