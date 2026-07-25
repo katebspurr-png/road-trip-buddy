@@ -184,7 +184,7 @@
   }
   function defaults() {
     const t = newTrip("My Trip");
-    return { v: 2, trips: [t], currentTripId: t.id, packing: DEFAULT_PACKING, plates: [], catIdx: 0, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [], triviaCat: "All" };
+    return { v: 2, onboarded: false, trips: [t], currentTripId: t.id, settings: { packing: true, expenses: true, games: true }, packing: DEFAULT_PACKING, plates: [], catIdx: 0, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [], triviaCat: "All" };
   }
   /* v1 stored a single implicit trip at the top level — wrap it into trips[] */
   function migrate(s) {
@@ -193,9 +193,11 @@
       const merged = { ...defaults(), ...s };
       if (!merged.trips.some((t) => t.id === merged.currentTripId)) merged.currentTripId = merged.trips[0].id;
       merged.trips.forEach((t) => { if (!t.mode) t.mode = "copilot"; });
+      merged.settings = { ...defaults().settings, ...(s.settings || {}) };
+      merged.onboarded = s.onboarded !== undefined ? s.onboarded : true; // existing users skip the welcome
       return merged;
     }
-    const out = { ...defaults(), packing: s.packing || DEFAULT_PACKING, plates: s.plates || [], catIdx: s.catIdx || 0, platesCanada: !!s.platesCanada, bingoCard: s.bingoCard || null, bingoMarked: s.bingoMarked || [], q20: s.q20 || 0, triviaSeen: s.triviaSeen || [], triviaCat: s.triviaCat || "All" };
+    const out = { ...defaults(), onboarded: true, packing: s.packing || DEFAULT_PACKING, plates: s.plates || [], catIdx: s.catIdx || 0, platesCanada: !!s.platesCanada, bingoCard: s.bingoCard || null, bingoMarked: s.bingoMarked || [], q20: s.q20 || 0, triviaSeen: s.triviaSeen || [], triviaCat: s.triviaCat || "All" };
     const t = out.trips[0];
     t.stops = s.stops || [];
     t.expenses = s.expenses || [];
@@ -247,13 +249,81 @@
 
   // ---------- tabs ----------
   const views = { trip: $("#view-trip"), packing: $("#view-packing"), expenses: $("#view-expenses"), games: $("#view-games") };
+  function activateTab(name) {
+    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.view === name));
+    Object.entries(views).forEach(([n, el]) => { el.hidden = n !== name; });
+    window.scrollTo(0, 0);
+  }
   document.querySelectorAll(".tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
-      Object.entries(views).forEach(([name, el]) => { el.hidden = name !== tab.dataset.view; });
-      window.scrollTo(0, 0);
+    tab.addEventListener("click", () => activateTab(tab.dataset.view));
+  });
+
+  // ---------- settings ----------
+  function applySettings() {
+    ["packing", "expenses", "games"].forEach((key) => {
+      const on = !!state.settings[key];
+      document.querySelector(`.tab[data-view="${key}"]`).hidden = !on;
+      $("#set-" + key).checked = on;
+      if (!on && !views[key].hidden) activateTab("trip");
+    });
+  }
+  ["packing", "expenses", "games"].forEach((key) => {
+    $("#set-" + key).addEventListener("change", (e) => {
+      state.settings[key] = e.target.checked;
+      save();
+      applySettings();
     });
   });
+  $("#settings-btn").addEventListener("click", () => { $("#settings-panel").hidden = false; });
+  $("#settings-close").addEventListener("click", () => { $("#settings-panel").hidden = true; });
+
+  // ---------- welcome / first-run setup ----------
+  const MODE_BLURBS = {
+    solo: "Just me — Driver Mode front and center, no expense splitting",
+    copilot: "Me + friends — split expenses, settle up, all the games",
+    family: "The whole crew — kids' packing list and back-seat games first",
+  };
+  let welcomeMode = "copilot";
+  function renderWelcomeModes() {
+    const wrap = $("#welcome-modes");
+    wrap.innerHTML = "";
+    MODES.forEach(([key, label]) => {
+      const card = button("welcome-mode" + (key === welcomeMode ? " active" : ""), "", () => {
+        welcomeMode = key;
+        renderWelcomeModes();
+      });
+      const title = document.createElement("div");
+      title.className = "welcome-mode-title";
+      title.textContent = label;
+      const blurb = document.createElement("div");
+      blurb.className = "welcome-mode-blurb";
+      blurb.textContent = MODE_BLURBS[key];
+      card.append(title, blurb);
+      wrap.append(card);
+    });
+  }
+  $("#welcome-go").addEventListener("click", () => {
+    const t = trip();
+    const name = $("#welcome-name").value.trim();
+    if (name) t.name = name;
+    t.start = $("#welcome-start").value || "";
+    t.mode = welcomeMode;
+    if (welcomeMode === "family") seedFamilyPacking();
+    state.onboarded = true;
+    save();
+    renderAll();
+    $("#welcome").hidden = true;
+  });
+  $("#welcome-skip").addEventListener("click", () => {
+    state.onboarded = true;
+    save();
+    $("#welcome").hidden = true;
+  });
+  function maybeShowWelcome() {
+    if (state.onboarded) return;
+    renderWelcomeModes();
+    $("#welcome").hidden = false;
+  }
 
   function fmtMoney(n) {
     return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1076,6 +1146,7 @@
   };
 
   function renderAll() {
+    applySettings();
     applyMode();
     renderTripMeta();
     renderTrip();
@@ -1090,6 +1161,7 @@
     renderTriviaCats();
   }
   renderAll();
+  maybeShowWelcome();
   save(); // seed the native state mirror on launch
 
   if ("serviceWorker" in navigator) {
