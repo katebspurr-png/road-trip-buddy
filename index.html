@@ -199,15 +199,29 @@
 
   <div id="driver-mode" class="driver-mode" hidden>
     <button id="driver-exit" class="driver-exit">✕ Exit</button>
-    <div class="driver-content">
+    <div class="driver-content" id="driver-main">
       <div class="driver-label">NEXT STOP</div>
       <div id="driver-stop" class="driver-stop">—</div>
       <div id="driver-note" class="driver-note"></div>
       <div id="driver-progress" class="driver-progress"></div>
+      <div id="driver-toast" class="driver-toast" hidden></div>
     </div>
-    <div class="driver-actions">
+    <div class="driver-actions" id="driver-main-actions">
       <a id="driver-nav" class="driver-btn nav" target="_blank" rel="noopener">🧭 Navigate</a>
       <button id="driver-arrived" class="driver-btn arrived">✓ Arrived</button>
+      <button id="driver-gas-btn" class="driver-btn gas">⛽ Gas stop</button>
+    </div>
+    <div class="driver-content driver-gas" id="driver-gas" hidden>
+      <div class="driver-label">GAS STOP</div>
+      <input id="dgas-amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00" class="dgas-amount" aria-label="amount paid">
+      <div class="dgas-row">
+        <input id="dgas-litres" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Litres" aria-label="litres">
+        <input id="dgas-odo" type="number" inputmode="decimal" step="1" min="0" placeholder="Odometer km" aria-label="odometer">
+      </div>
+    </div>
+    <div class="driver-actions" id="driver-gas-actions" hidden>
+      <button id="dgas-save" class="driver-btn arrived">✓ Log it</button>
+      <button id="dgas-cancel" class="driver-btn nav">← Back</button>
     </div>
   </div>
 

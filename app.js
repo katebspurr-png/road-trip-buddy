@@ -543,6 +543,7 @@
   }
   $("#driver-enter").addEventListener("click", () => {
     driverEl.hidden = false;
+    showDriverGas(false);
     renderDriver();
     acquireWakeLock();
     setNativeKeepAwake(true);
@@ -563,6 +564,51 @@
   /* the OS silently drops wake locks when the app is backgrounded — re-grab on return */
   document.addEventListener("visibilitychange", () => {
     if (!driverEl.hidden && document.visibilityState === "visible") acquireWakeLock();
+  });
+
+  /* quick gas logging without leaving driver mode */
+  function showDriverGas(show) {
+    $("#driver-gas").hidden = !show;
+    $("#driver-gas-actions").hidden = !show;
+    $("#driver-main").hidden = show;
+    $("#driver-main-actions").hidden = show;
+  }
+  let driverToastTimer = null;
+  function driverToast(text) {
+    const el = $("#driver-toast");
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(driverToastTimer);
+    driverToastTimer = setTimeout(() => { el.hidden = true; }, 2500);
+  }
+  $("#driver-gas-btn").addEventListener("click", () => {
+    $("#dgas-amount").value = "";
+    $("#dgas-litres").value = "";
+    $("#dgas-odo").value = "";
+    showDriverGas(true);
+    $("#dgas-amount").focus();
+  });
+  $("#dgas-cancel").addEventListener("click", () => showDriverGas(false));
+  $("#dgas-save").addEventListener("click", () => {
+    const amount = parseFloat($("#dgas-amount").value);
+    if (!(amount > 0)) { $("#dgas-amount").focus(); return; }
+    const exp = {
+      id: uid(),
+      amount: Math.round(amount * 100) / 100,
+      cat: CATEGORIES[0],
+      note: "",
+      paidBy: currentPayerId(),
+      at: Date.now(),
+    };
+    const litres = parseFloat($("#dgas-litres").value);
+    const odo = parseFloat($("#dgas-odo").value);
+    if (litres > 0) exp.litres = Math.round(litres * 100) / 100;
+    if (odo > 0) exp.odo = odo;
+    trip().expenses.push(exp);
+    save();
+    renderExpenses();
+    showDriverGas(false);
+    driverToast("⛽ Logged " + fmtMoney(exp.amount));
   });
 
   // ---------- packing ----------
