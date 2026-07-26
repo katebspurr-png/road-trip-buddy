@@ -47,13 +47,13 @@
 
   const BINGO_POOL = [
     "Cow", "Horse", "Water tower", "Red barn", "Wind turbine", "Motorcycle", "School bus",
-    "Yellow car", "Convertible", "Boat on a trailer", "Out-of-province plate", "Rest area sign",
-    "Railroad crossing", "Train", "Bridge", "Tunnel", "Lighthouse", "Ferry", "Moose sign",
-    "Deer (a real one)", "Tim Hortons", "Golden arches", "Police car", "Ambulance", "Fire truck",
-    "Helicopter", "Plane overhead", "Rainbow", "Roadside fruit stand", "Church steeple",
-    "Funny bumper sticker", "Mattress on a roof", "Broken-down car", "Cyclist", "Tractor",
-    "Dog out the window", "Driver singing", "Speed trap", "Graffiti", "Antique car", "Limo",
-    "RV / camper", "Hay bales", "Fireworks billboard", "Someone eating while driving",
+    "Yellow car", "Convertible", "Boat trailer", "Far-away plate", "Rest area sign",
+    "Rail crossing", "Train", "Bridge", "Tunnel", "Lighthouse", "Ferry", "Moose sign",
+    "A real deer", "Tim Hortons", "Golden arches", "Police car", "Ambulance", "Fire truck",
+    "Helicopter", "Plane overhead", "Rainbow", "Fruit stand", "Church steeple",
+    "Funny bumper", "Mattress on roof", "Broken-down car", "Cyclist", "Tractor",
+    "Dog in window", "Driver singing", "Speed trap", "Graffiti", "Antique car", "Limo",
+    "RV / camper", "Hay bales", "Fireworks sign", "Driver eating",
   ];
   const BINGO_LINES = (() => {
     const lines = [];
@@ -292,13 +292,19 @@
         welcomeMode = key;
         renderWelcomeModes();
       });
-      const title = document.createElement("div");
+      const emoji = document.createElement("span");
+      emoji.className = "welcome-mode-emoji";
+      emoji.textContent = label.split(" ")[0];
+      const text = document.createElement("span");
+      text.className = "welcome-mode-text";
+      const title = document.createElement("span");
       title.className = "welcome-mode-title";
-      title.textContent = label;
-      const blurb = document.createElement("div");
+      title.textContent = label.split(" ").slice(1).join(" ");
+      const blurb = document.createElement("span");
       blurb.className = "welcome-mode-blurb";
       blurb.textContent = MODE_BLURBS[key];
-      card.append(title, blurb);
+      text.append(title, blurb);
+      card.append(emoji, text);
       wrap.append(card);
     });
   }
@@ -318,6 +324,16 @@
     state.onboarded = true;
     save();
     $("#welcome").hidden = true;
+  });
+  $("#welcome-start").addEventListener("change", () => {
+    const v = $("#welcome-start").value;
+    const el = $("#welcome-countdown");
+    if (!v) { el.hidden = true; return; }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((new Date(v + "T00:00:00") - today) / 86400000);
+    el.textContent = diff >= 0 ? diff + " d" : "Day " + (1 - diff);
+    el.hidden = false;
   });
   function maybeShowWelcome() {
     if (state.onboarded) return;
@@ -350,17 +366,29 @@
     const t = trip();
     $("#trip-name").value = t.name;
     $("#trip-start").value = t.start || "";
+    const pill = $("#trip-date-pill");
+    if (t.start) {
+      pill.textContent = new Date(t.start + "T00:00:00")
+        .toLocaleDateString("en", { month: "short", day: "numeric" }).toUpperCase();
+      pill.hidden = false;
+      $("#trip-start").hidden = true;
+    } else {
+      pill.hidden = true;
+      $("#trip-start").hidden = false;
+    }
     const chips = $("#trip-chips");
     chips.innerHTML = "";
-    state.trips.forEach((tr) => {
-      const chip = button("chip" + (tr.id === t.id ? " active" : ""), tr.name, () => {
-        state.currentTripId = tr.id;
-        editing = null;
-        save();
-        renderAll();
+    if (state.trips.length > 1) {
+      state.trips.forEach((tr) => {
+        const chip = button("chip" + (tr.id === t.id ? " active" : ""), tr.name, () => {
+          state.currentTripId = tr.id;
+          editing = null;
+          save();
+          renderAll();
+        });
+        chips.append(chip);
       });
-      chips.append(chip);
-    });
+    }
     const add = button("chip", "+ New trip", () => {
       const nt = newTrip("Trip " + (state.trips.length + 1));
       state.trips.push(nt);
@@ -405,7 +433,13 @@
   $("#trip-start").addEventListener("change", () => {
     trip().start = $("#trip-start").value;
     save();
+    renderTripMeta();
     renderTrip();
+  });
+  $("#trip-date-pill").addEventListener("click", () => {
+    $("#trip-date-pill").hidden = true;
+    $("#trip-start").hidden = false;
+    if ($("#trip-start").showPicker) $("#trip-start").showPicker(); else $("#trip-start").focus();
   });
   $("#trip-delete").addEventListener("click", () => {
     if (state.trips.length < 2) return;
@@ -425,8 +459,11 @@
     $("#trip-progress").hidden = stops.length === 0;
     const done = stops.filter((s) => s.done).length;
     if (stops.length) {
-      $("#trip-progress-fill").style.width = (done / stops.length) * 100 + "%";
-      $("#trip-progress-label").textContent = `${done}/${stops.length} stops`;
+      const pct = (done / stops.length) * 100;
+      $("#trip-progress-fill").style.width = pct + "%";
+      $("#trip-progress-car").style.left = "calc(" + pct + "% - 4%)";
+      $("#trip-progress-label").textContent = `${done} of ${stops.length} checked off`;
+      $("#trip-progress-pct").textContent = Math.round(pct) + "%";
     }
     const headerParts = [];
     const cd = countdownText(trip());
@@ -435,6 +472,7 @@
     $("#header-sub").textContent = headerParts.join(" · ");
     $("#driver-enter").hidden = stops.length === 0;
 
+    const nextUpId = (stops.find((s) => !s.done) || {}).id;
     stops.forEach((stop, i) => {
       const li = document.createElement("li");
 
@@ -462,16 +500,23 @@
         return;
       }
 
-      li.className = stop.done ? "checked" : "";
+      li.className = stop.done ? "checked" : (stop.id === nextUpId ? "next-up" : "");
 
-      const check = button("check", "✓", () => { stop.done = !stop.done; save(); renderTrip(); });
+      /* route shield: number when pending, ✓ once arrived */
+      const check = button("check", stop.done ? "✓" : String(i + 1).padStart(2, "0"), () => { stop.done = !stop.done; save(); renderTrip(); });
       check.setAttribute("aria-label", stop.done ? "mark not arrived" : "mark arrived");
 
       const body = document.createElement("div");
       body.className = "item-body";
+      if (stop.id === nextUpId) {
+        const tag = document.createElement("span");
+        tag.className = "next-up-tag";
+        tag.textContent = "Next up";
+        body.append(tag);
+      }
       const title = document.createElement("div");
       title.className = "item-title";
-      title.textContent = `${i + 1}. ${stop.name}`;
+      title.textContent = stop.name;
       const sub = document.createElement("div");
       sub.className = "item-sub";
       if (stop.note) sub.append(stop.note + " · ");
@@ -479,7 +524,7 @@
       map.href = mapsUrl(stop.name);
       map.target = "_blank";
       map.rel = "noopener";
-      map.textContent = "map ↗";
+      map.textContent = "🧭 Map";
       sub.append(map);
       body.append(title, sub);
 
@@ -525,18 +570,22 @@
   }
   function renderDriver() {
     const stop = nextStop();
+    const total = trip().stops.length;
     const done = trip().stops.filter((s) => s.done).length;
+    $("#driver-progress-fill").style.width = total ? (done / total) * 100 + "%" : "0%";
     if (!stop) {
-      $("#driver-stop").textContent = trip().stops.length ? "That's the trip! 🎉" : "No stops planned";
+      $("#driver-stopcount").textContent = "";
+      $("#driver-stop").textContent = total ? "That's the trip! 🎉" : "No stops planned";
       $("#driver-note").textContent = "";
-      $("#driver-progress").textContent = trip().stops.length ? `All ${trip().stops.length} stops done` : "";
+      $("#driver-progress").textContent = total ? `All ${total} done` : "";
       $("#driver-nav").hidden = true;
       $("#driver-arrived").hidden = true;
       return;
     }
+    $("#driver-stopcount").textContent = `Stop ${String(done + 1).padStart(2, "0")} of ${String(total).padStart(2, "0")}`;
     $("#driver-stop").textContent = stop.name;
     $("#driver-note").textContent = stop.note || "";
-    $("#driver-progress").textContent = `Stop ${done + 1} of ${trip().stops.length}`;
+    $("#driver-progress").textContent = `${total - done} to go`;
     $("#driver-nav").hidden = false;
     $("#driver-nav").href = mapsUrl(stop.name);
     $("#driver-arrived").hidden = false;
@@ -608,7 +657,8 @@
     save();
     renderExpenses();
     showDriverGas(false);
-    driverToast("⛽ Logged " + fmtMoney(exp.amount));
+    const payer = travelerById(exp.paidBy);
+    driverToast("✓ Logged · " + fmtMoney(exp.amount) + (payer ? " to " + payer.name : ""));
   });
 
   // ---------- packing ----------
@@ -617,9 +667,12 @@
     list.innerHTML = "";
     const items = state.packing;
     const done = items.filter((p) => p.checked).length;
-    $("#pack-progress-fill").style.width = items.length ? (done / items.length) * 100 + "%" : "0%";
-    $("#pack-progress-label").textContent = `${done}/${items.length} packed`;
+    const pct = items.length ? (done / items.length) * 100 : 0;
+    $("#pack-progress-fill").style.width = pct + "%";
+    $("#pack-progress-label").textContent = `${done} / ${items.length} packed`;
+    $("#pack-progress-pct").textContent = Math.round(pct) + "%";
 
+    const GROUP_EMOJI = { Essentials: "🧳", Car: "🚗", Comfort: "🛋", Kids: "🧸", "My items": "✏️" };
     let lastGroup = null;
     items.forEach((item) => {
       const group = item.group || "My items";
@@ -627,7 +680,7 @@
         lastGroup = group;
         const label = document.createElement("li");
         label.className = "group-label";
-        label.textContent = group;
+        label.textContent = (GROUP_EMOJI[group] ? GROUP_EMOJI[group] + " " : "") + group;
         list.append(label);
       }
       const li = document.createElement("li");
@@ -823,9 +876,23 @@
 
     const byCat = {};
     exps.forEach((x) => { byCat[x.cat] = (byCat[x.cat] || 0) + x.amount; });
-    $("#exp-by-cat").textContent = Object.entries(byCat)
-      .map(([c, v]) => `${c} ${fmtMoney(v)}`)
-      .join("   ");
+    const CAT_BAR_COLORS = ["var(--road)", "#8fbdb6", "var(--danger)", "#4b5f5b", "#cfe8e2", "#7f8c88"];
+    const bar = $("#cat-bar");
+    bar.innerHTML = "";
+    const legend = $("#exp-by-cat");
+    legend.innerHTML = "";
+    Object.entries(byCat).forEach(([c, v], i) => {
+      const seg = document.createElement("div");
+      seg.style.width = (v / total) * 100 + "%";
+      seg.style.background = CAT_BAR_COLORS[i % CAT_BAR_COLORS.length];
+      bar.append(seg);
+      const item = document.createElement("span");
+      const swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.style.background = CAT_BAR_COLORS[i % CAT_BAR_COLORS.length];
+      item.append(swatch, `${c.split(" ")[0]} ${fmtMoney(v)}`);
+      legend.append(item);
+    });
 
     const settle = computeSettleUp();
     const settleBox = $("#settle-lines");
@@ -833,7 +900,12 @@
     if (settle && (settle.lines.length || settle.unassigned)) {
       settle.lines.forEach((l) => {
         const div = document.createElement("div");
-        div.textContent = `${l.from} owes ${l.to} ${fmtMoney(l.amt)}`;
+        const who = document.createElement("span");
+        who.textContent = `${l.from} owes ${l.to}`;
+        const amt = document.createElement("span");
+        amt.className = "settle-amt";
+        amt.textContent = fmtMoney(l.amt);
+        div.append(who, amt);
         settleBox.append(div);
       });
       if (!settle.lines.length && trip().expenses.length) {
@@ -901,11 +973,16 @@
         return;
       }
 
+      const tile = document.createElement("span");
+      const tileClasses = { "⛽ Gas": "t-gas", "🛏️ Lodging": "t-lodging", "📦 Other": "t-other" };
+      tile.className = "exp-tile " + (tileClasses[exp.cat] || "");
+      tile.textContent = exp.cat.split(" ")[0];
+
       const body = document.createElement("div");
       body.className = "item-body";
       const title = document.createElement("div");
       title.className = "item-title";
-      title.textContent = exp.cat + (exp.note ? " · " + exp.note : "");
+      title.textContent = exp.cat.split(" ").slice(1).join(" ") + (exp.note ? " · " + exp.note : "");
       const sub = document.createElement("div");
       sub.className = "item-sub";
       const payer = travelerById(exp.paidBy);
@@ -925,7 +1002,7 @@
         save();
         renderExpenses();
       });
-      li.append(body, amount, edit, del);
+      li.append(tile, body, amount, edit, del);
       list.append(li);
     });
   }
@@ -1000,11 +1077,23 @@
 
   // ---------- games ----------
   let lastPrompt = -1;
-  $("#prompt-btn").addEventListener("click", () => {
+  function newPrompt() {
     let i;
     do { i = Math.floor(Math.random() * PROMPTS.length); } while (i === lastPrompt && PROMPTS.length > 1);
     lastPrompt = i;
     $("#prompt-text").textContent = PROMPTS[i];
+  }
+  $("#prompt-btn").addEventListener("click", newPrompt);
+  $("#prompt-skip").addEventListener("click", newPrompt);
+
+  /* plate hunt lives collapsed in the stat pair — tap to open, tap the title to fold */
+  $("#game-plates").addEventListener("click", (e) => {
+    const card = $("#game-plates");
+    if (card.classList.contains("collapsed")) {
+      card.classList.remove("collapsed");
+    } else if (e.target.closest("h2")) {
+      card.classList.add("collapsed");
+    }
   });
 
   // Road Trip Bingo
@@ -1048,7 +1137,7 @@
 
   // 20 Questions
   function renderQ20() {
-    $("#q20-status").textContent = state.q20 >= 20 ? "Out of questions — time for final guesses!" : `Question ${state.q20} of 20`;
+    $("#q20-status").textContent = state.q20 >= 20 ? "20/20 — guess!" : `${String(state.q20).padStart(2, "0")}/20`;
   }
   $("#q20-plus").addEventListener("click", () => { state.q20 = Math.min(20, state.q20 + 1); save(); renderQ20(); });
   $("#q20-minus").addEventListener("click", () => { state.q20 = Math.max(0, state.q20 - 1); save(); renderQ20(); });
