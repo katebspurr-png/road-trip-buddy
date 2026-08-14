@@ -184,7 +184,7 @@
   }
   function defaults() {
     const t = newTrip("My Trip");
-    return { v: 2, onboarded: false, trips: [t], currentTripId: t.id, settings: { packing: true, expenses: true, games: true }, packing: DEFAULT_PACKING, plates: [], catIdx: 0, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [], triviaCat: "All" };
+    return { v: 2, onboarded: false, trips: [t], currentTripId: t.id, settings: { packing: true, expenses: true, games: true, weather: true }, packing: DEFAULT_PACKING, plates: [], catIdx: 0, platesCanada: false, bingoCard: null, bingoMarked: [], q20: 0, triviaSeen: [], triviaCat: "All" };
   }
   /* v1 stored a single implicit trip at the top level — wrap it into trips[] */
   function migrate(s) {
@@ -266,6 +266,7 @@
       $("#set-" + key).checked = on;
       if (!on && !views[key].hidden) activateTab("trip");
     });
+    $("#set-weather").checked = !!state.settings.weather;
   }
   ["packing", "expenses", "games"].forEach((key) => {
     $("#set-" + key).addEventListener("change", (e) => {
@@ -273,6 +274,12 @@
       save();
       applySettings();
     });
+  });
+  $("#set-weather").addEventListener("change", (e) => {
+    state.settings.weather = e.target.checked;
+    save();
+    renderTrip();
+    if (e.target.checked) refreshWeather(true);
   });
   $("#settings-btn").addEventListener("click", () => { $("#settings-panel").hidden = false; });
   $("#settings-close").addEventListener("click", () => { $("#settings-panel").hidden = true; });
@@ -471,6 +478,7 @@
     if (stops.length) headerParts.push(`${stops.length - done} stops to go`);
     $("#header-sub").textContent = headerParts.join(" · ");
     $("#driver-enter").hidden = stops.length === 0;
+    renderWxMeta();
 
     const nextUpId = (stops.find((s) => !s.done) || {}).id;
     stops.forEach((stop, i) => {
@@ -485,11 +493,14 @@
         fields.append(nameIn, noteIn);
         const ok = button("mini-btn ok", "✓", () => {
           const name = nameIn.value.trim();
+          const renamed = name && name !== stop.name;
           if (name) stop.name = name;
+          if (renamed) { delete stop.geo; delete stop.wx; } // stale place — refetch below
           stop.note = noteIn.value.trim();
           editing = null;
           save();
           renderTrip();
+          if (renamed) refreshWeather(true);
         });
         const cancel = button("mini-btn", "✕", () => { editing = null; renderTrip(); });
         const actions = document.createElement("div");
@@ -519,6 +530,15 @@
       title.textContent = stop.name;
       const sub = document.createElement("div");
       sub.className = "item-sub";
+      const w = state.settings.weather && !stop.done ? wxDay(stop) : null;
+      if (w) {
+        const info = wxInfo(w.code);
+        const wx = document.createElement("span");
+        wx.className = "wx" + (info.severe ? " severe" : "");
+        wx.textContent = info.e + " " + (info.severe ? info.label + " " : "") + Math.round(w.hi) + "°" +
+          (w.precip >= 30 ? " · 💧" + w.precip + "%" : "");
+        sub.append(wx, " · ");
+      }
       if (stop.note) sub.append(stop.note + " · ");
       const map = document.createElement("a");
       map.href = mapsUrl(stop.name);
@@ -554,6 +574,7 @@
     e.target.reset();
     save();
     renderTrip();
+    refreshWeather(true);
   });
 
   // ---------- driver mode ----------
@@ -577,6 +598,7 @@
       $("#driver-stopcount").textContent = "";
       $("#driver-stop").textContent = total ? "That's the trip! 🎉" : "No stops planned";
       $("#driver-note").textContent = "";
+      $("#driver-weather").hidden = true;
       $("#driver-progress").textContent = total ? `All ${total} done` : "";
       $("#driver-nav").hidden = true;
       $("#driver-arrived").hidden = true;
@@ -585,10 +607,23 @@
     $("#driver-stopcount").textContent = `Stop ${String(done + 1).padStart(2, "0")} of ${String(total).padStart(2, "0")}`;
     $("#driver-stop").textContent = stop.name;
     $("#driver-note").textContent = stop.note || "";
+    renderDriverWeather(stop);
     $("#driver-progress").textContent = `${total - done} to go`;
     $("#driver-nav").hidden = false;
     $("#driver-nav").href = mapsUrl(stop.name);
     $("#driver-arrived").hidden = false;
+  }
+  /* One glanceable line — a decision, not data. No radar, nothing to study. */
+  function renderDriverWeather(stop) {
+    const el = $("#driver-weather");
+    const w = state.settings.weather ? wxDay(stop) : null;
+    if (!w) { el.hidden = true; return; }
+    const info = wxInfo(w.code);
+    el.className = "driver-weather" + (info.severe ? " severe" : "");
+    el.textContent = info.e + " " + (info.label || "—") + " · " + Math.round(w.hi) + "°" +
+      (w.precip >= 30 ? " · " + w.precip + "% rain" : "") +
+      (Date.now() - stop.wx.at > 3 * 3600000 ? " · as of " + timeAgo(stop.wx.at) : "");
+    el.hidden = false;
   }
   $("#driver-enter").addEventListener("click", () => {
     driverEl.hidden = false;
@@ -596,6 +631,7 @@
     renderDriver();
     acquireWakeLock();
     setNativeKeepAwake(true);
+    refreshWeather(false); // grab a fresh forecast while parked, if we have signal
   });
   $("#driver-exit").addEventListener("click", () => {
     driverEl.hidden = true;
@@ -660,6 +696,189 @@
     const payer = travelerById(exp.paidBy);
     driverToast("✓ Logged · " + fmtMoney(exp.amount) + (payer ? " to " + payer.name : ""));
   });
+
+  // ---------- weather ----------
+  /* The app's one network feature. Philosophy: fetch when signal exists, cache
+     in state, always show how stale it is — everything else keeps working at
+     zero bars. Data: Open-Meteo (no key, no account). */
+  const WX_STALE_MS = 30 * 60 * 1000;
+  const WX_MAX_STOPS = 15; // be polite to the free geocoder
+  let wxFetching = false;
+
+  function wxInfo(code) {
+    if (code === 0) return { e: "☀️", label: "Clear" };
+    if (code <= 2) return { e: "⛅", label: "Partly cloudy" };
+    if (code === 3) return { e: "☁️", label: "Overcast" };
+    if (code === 45 || code === 48) return { e: "🌫️", label: "Fog" };
+    if (code >= 51 && code <= 55) return { e: "🌦️", label: "Drizzle" };
+    if (code === 56 || code === 57 || code === 66 || code === 67) return { e: "🌧️", label: "Freezing rain", severe: true };
+    if (code === 65 || code === 82) return { e: "🌧️", label: "Heavy rain", severe: true };
+    if ((code >= 61 && code <= 64) || code === 80 || code === 81) return { e: "🌧️", label: "Rain" };
+    if (code === 86) return { e: "🌨️", label: "Heavy snow", severe: true };
+    if ((code >= 71 && code <= 77) || code === 85) return { e: "🌨️", label: "Snow" };
+    if (code >= 95) return { e: "⛈️", label: "Thunderstorm", severe: true };
+    return { e: "🌡️", label: "" };
+  }
+
+  /* Forecast day to display: departure day when the trip starts 1–6 days out
+     (the night-before briefing), otherwise today. */
+  function wxDayIndex() {
+    const t = trip();
+    if (!t.start) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((new Date(t.start + "T00:00:00") - today) / 86400000);
+    return diff >= 1 && diff <= 6 ? diff : 0;
+  }
+  function localISO(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  /* Matched by date, not index, so a cache fetched days ago silently yields
+     nothing instead of yesterday's forecast wearing today's label. */
+  function wxDay(stop) {
+    if (!stop.wx || !Array.isArray(stop.wx.days)) return null;
+    const target = localISO(wxDayIndex());
+    return stop.wx.days.find((d) => d.date === target) || null;
+  }
+  function wxNewest() {
+    return Math.max(0, ...trip().stops.map((s) => (s.wx && s.wx.at) || 0));
+  }
+  function timeAgo(ts) {
+    const m = Math.round((Date.now() - ts) / 60000);
+    if (m < 2) return "just now";
+    if (m < 60) return m + " min ago";
+    const h = Math.round(m / 60);
+    if (h < 24) return h + " h ago";
+    return Math.round(h / 24) + " d ago";
+  }
+
+  /* Bare town names are ambiguous (Deep River exists in Ontario AND Iowa).
+     Two road-trip heuristics: a ", ON"-style qualifier filters candidates by
+     region, and otherwise the candidate nearest the previous located stop
+     wins — routes are geographically contiguous. */
+  const REGIONS = {
+    AB: "Alberta", BC: "British Columbia", MB: "Manitoba", NB: "New Brunswick", NL: "Newfoundland", NS: "Nova Scotia",
+    NT: "Northwest Territories", NU: "Nunavut", ON: "Ontario", PE: "Prince Edward Island", QC: "Quebec", SK: "Saskatchewan", YT: "Yukon",
+    AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut",
+    DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+    KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan",
+    MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire",
+    NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
+    OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota",
+    TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia",
+    WI: "Wisconsin", WY: "Wyoming", DC: "District of Columbia",
+  };
+  function regionMatch(qualifier, r) {
+    const q = qualifier.toLowerCase();
+    const full = (REGIONS[qualifier.toUpperCase()] || qualifier).toLowerCase();
+    const admin = (r.admin1 || "").toLowerCase();
+    return (admin && (admin.startsWith(full) || full.startsWith(admin))) ||
+      (r.country || "").toLowerCase() === full ||
+      (r.country_code || "").toLowerCase() === q;
+  }
+  function pickCandidate(results, qualifier, anchor) {
+    if (!results.length) return null;
+    let pool = results;
+    if (qualifier) {
+      const matched = results.filter((r) => regionMatch(qualifier, r));
+      if (matched.length) pool = matched;
+    }
+    if (anchor) {
+      const d2 = (r) => (r.latitude - anchor.lat) ** 2 + (r.longitude - anchor.lon) ** 2;
+      pool = [...pool].sort((a, b) => d2(a) - d2(b));
+    }
+    return pool[0];
+  }
+  async function geocode(q) {
+    const res = await fetch("https://geocoding-api.open-meteo.com/v1/search?count=10&language=en&format=json&name=" + encodeURIComponent(q));
+    if (!res.ok) throw new Error("geocode " + res.status);
+    const data = await res.json();
+    return data.results || [];
+  }
+
+  async function refreshWeather(force) {
+    if (!state.settings.weather || wxFetching || !navigator.onLine) { renderWxMeta(); return; }
+    const stops = trip().stops.filter((s) => !s.done).slice(0, WX_MAX_STOPS);
+    if (!stops.length) { renderWxMeta(); return; }
+    if (!force && Date.now() - wxNewest() < WX_STALE_MS) { renderWxMeta(); return; }
+    wxFetching = true;
+    renderWxMeta();
+    try {
+      let anchor = null; // most recent located stop, in route order
+      for (const s of stops) {
+        if (s.geo && s.geo.q === s.name) {
+          if (!s.geo.none) anchor = s.geo;
+          continue; // geocoded and not renamed since
+        }
+        try {
+          const comma = s.name.indexOf(",");
+          const base = comma > -1 ? s.name.slice(0, comma).trim() : s.name;
+          const qualifier = comma > -1 ? s.name.slice(comma + 1).trim() : "";
+          let results = await geocode(base);
+          if (!results.length && base !== s.name) results = await geocode(s.name);
+          const hit = pickCandidate(results, qualifier, anchor);
+          s.geo = hit
+            ? { q: s.name, lat: hit.latitude, lon: hit.longitude, place: hit.name }
+            : { q: s.name, none: true }; // "World's Largest Ball of Twine" — no weather, no fuss
+          if (hit) anchor = s.geo;
+        } catch (e) { /* leave un-geocoded; retried on the next refresh */ }
+      }
+      const located = stops.filter((s) => s.geo && !s.geo.none);
+      if (located.length) {
+        const res = await fetch(
+          "https://api.open-meteo.com/v1/forecast?daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=7&timezone=auto" +
+          "&latitude=" + located.map((s) => s.geo.lat).join(",") +
+          "&longitude=" + located.map((s) => s.geo.lon).join(",")
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : [data];
+          located.forEach((s, i) => {
+            const d = list[i] && list[i].daily;
+            if (!d || !Array.isArray(d.time)) return;
+            s.wx = {
+              at: Date.now(),
+              days: d.time.map((date, j) => ({
+                date,
+                code: d.weather_code[j],
+                hi: d.temperature_2m_max[j],
+                lo: d.temperature_2m_min[j],
+                precip: d.precipitation_probability_max[j],
+              })),
+            };
+          });
+          save();
+        }
+      }
+    } catch (e) { /* no signal or API down — keep whatever forecast we had */ }
+    wxFetching = false;
+    renderTrip();
+    if (!driverEl.hidden) renderDriver();
+  }
+
+  function renderWxMeta() {
+    const row = $("#wx-meta");
+    const stops = trip().stops.filter((s) => !s.done);
+    const newest = wxNewest();
+    const show = state.settings.weather && stops.length > 0 && (newest || wxFetching || navigator.onLine);
+    row.hidden = !show;
+    if (!show) return;
+    const idx = wxDayIndex();
+    const dayTxt = idx > 0
+      ? "departure " + new Date(trip().start + "T00:00:00").toLocaleDateString("en", { month: "short", day: "numeric" })
+      : "today";
+    const label = $("#wx-meta-label");
+    if (wxFetching) label.textContent = "🌦️ Checking the skies…";
+    else if (!newest) label.textContent = "🌦️ Tap ↻ for the route forecast";
+    else label.textContent = "🌦️ " + dayTxt + " · updated " + timeAgo(newest) + (navigator.onLine ? "" : " · offline");
+    $("#wx-refresh").disabled = wxFetching || !navigator.onLine;
+  }
+  $("#wx-refresh").addEventListener("click", () => refreshWeather(true));
+  /* signal came back mid-drive — grab a fresh forecast while we can */
+  window.addEventListener("online", () => refreshWeather(false));
+  window.addEventListener("offline", () => renderWxMeta());
 
   // ---------- packing ----------
   function renderPacking() {
@@ -1298,6 +1517,7 @@
   renderAll();
   maybeShowWelcome();
   save(); // seed the native state mirror on launch
+  refreshWeather(false); // opportunistic — no-op offline or when the cache is fresh
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));

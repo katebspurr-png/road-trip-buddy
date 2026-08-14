@@ -44,6 +44,10 @@
         <span class="de-text"><span class="de-title">Start Driver Mode</span><span class="de-sub">Big type · Screen stays awake</span></span>
         <span class="de-chevron">›</span>
       </button>
+      <div id="wx-meta" class="wx-meta" hidden>
+        <span id="wx-meta-label"></span>
+        <button id="wx-refresh" class="wx-refresh" aria-label="refresh forecast">↻</button>
+      </div>
       <ul id="stop-list" class="card-list"></ul>
       <p id="trip-empty" class="empty-note">No stops yet. Add your first destination below — gas stations, diners, scenic overlooks, all of it.</p>
       <form id="stop-form" class="add-form">
@@ -205,6 +209,7 @@
       <label class="toggle"><input type="checkbox" id="set-packing"> 🎒 Packing list</label>
       <label class="toggle"><input type="checkbox" id="set-expenses"> 💸 Expense tracking</label>
       <label class="toggle"><input type="checkbox" id="set-games"> 🎮 Games</label>
+      <label class="toggle"><input type="checkbox" id="set-weather"> 🌦️ Weather forecasts <span class="toggle-note">(fetched online, kept for offline)</span></label>
     </div>
     <div class="game-card" id="game-backup">
       <h2>💾 Backup</h2>
@@ -227,6 +232,7 @@
       <div class="driver-label">NEXT STOP</div>
       <div id="driver-stop" class="driver-stop">—</div>
       <div id="driver-note" class="driver-note"></div>
+      <div id="driver-weather" class="driver-weather" hidden></div>
       <div class="driver-progress-row">
         <div class="driver-progress-bar"><div id="driver-progress-fill"></div></div>
         <span id="driver-progress" class="driver-progress"></span>

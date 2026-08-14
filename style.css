@@ -448,6 +448,37 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 #stop-list .mini-btn { padding: 8px 4px; margin-top: 4px; }
 #stop-list .edit-fields { z-index: 1; }
 
+/* ---- weather along the route ---- */
+.wx-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 8px;
+}
+.wx-meta span {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+}
+.wx-refresh {
+  flex: none;
+  width: 30px; height: 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--accent);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.wx-refresh:disabled { opacity: 0.35; cursor: default; }
+.item-sub .wx { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em; }
+.item-sub .wx.severe { color: var(--danger); }
+
 /* ---- travelers & settle-up ---- */
 .travelers-card {
   background: var(--card);
@@ -678,6 +709,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
   cursor: pointer;
 }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.toggle-note { font-size: 0.72rem; opacity: 0.75; }
 
 .fuel-inputs input[type="number"] { flex: 1; width: auto !important; min-width: 0; }
 
@@ -1043,6 +1075,14 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
   overflow-wrap: anywhere;
 }
 .driver-note { font-size: 1.25rem; color: #b9c4c0; overflow-wrap: anywhere; }
+.driver-weather {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #b9c4c0;
+}
+.driver-weather.severe { color: var(--road); }
 .driver-progress-row {
   display: flex;
   align-items: center;
