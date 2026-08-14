@@ -13,16 +13,17 @@ An **offline-first road-trip companion app**: plan stops, pack, track expenses, 
 - **Vanilla HTML + CSS + JS. No framework, no build step, no dependencies.** Three files: `index.html`, `style.css`, `app.js`, plus `sw.js` (cache-first service worker).
 - All state in `localStorage` (versioned schema with migrations). No server, no accounts.
 - **Everything must be self-contained and offline** — no CDN fonts, no external images, no web fonts. System font stack; **emoji are the entire icon system** (this is a deliberate charm, not a gap).
+- **One exception: weather.** Forecasts come from Open-Meteo (free, no key) — fetched opportunistically when signal exists, cached in state, always stamped with staleness. The app never *needs* the network; weather just appears when it can. Toggleable off in Settings.
 - Renders in Safari/Chrome as a PWA and inside an iOS WKWebView. Must respect `env(safe-area-inset-*)` (notch, home indicator).
 
 ## Screens & surfaces (complete inventory)
 
 1. **Welcome / first-run setup** (`#welcome`) — one-time: trip name, optional start date, "who's going" picker (3 mode cards). Skippable.
-2. **Trip tab** — trip card (inline-editable name, date picker, trip-switcher chips, mode chips Solo/Co-pilot/Family), Driver Mode launch button, progress bar, ordered stop list (check off / edit / reorder / delete, map link per stop), add-stop form, delete-trip button.
+2. **Trip tab** — trip card (inline-editable name, date picker, trip-switcher chips, mode chips Solo/Co-pilot/Family), Driver Mode launch button, progress bar, weather meta row (forecast day + staleness + refresh), ordered stop list (check off / edit / reorder / delete, map link + per-stop forecast line), add-stop form, delete-trip button.
 3. **Packing tab** — progress bar, grouped checklist (Essentials / Car / Comfort / Kids / My items), add form, "uncheck everything".
 4. **Expenses tab** — totals card (big total, N-way split, category breakdown, settle-up lines like "Jo owes Kate $40"), fuel stats card (L/100 km, cost/km, distance, $/L), travelers card (name chips), add-expense form (amount + category chips + note + paid-by chips + odometer/litres when Gas), expense list (edit-in-place), share-settle-up button.
 5. **Games tab** — Ask the Buddy (conversation prompts), Road Trip Bingo (5×5, win detection, BINGO banner), 20 Questions counter, Trivia (90 questions, 6 category filter chips), License Plate Hunt (US grid + optional Canadian provinces).
-6. **Driver Mode** (`#driver-mode`) — full-screen, **always-dark**, for a mounted phone: NEXT STOP in huge type, note, progress, three giant buttons (🧭 Navigate / ✓ Arrived / ⛽ Gas stop). Gas stop swaps to a giant-type quick-log (oversized amount field, litres/odometer, Log it / Back) with a green confirmation toast.
+6. **Driver Mode** (`#driver-mode`) — full-screen, **always-dark**, for a mounted phone: NEXT STOP in huge type, note, one-line weather (a decision, not data — severe conditions go mustard), progress, three giant buttons (🧭 Navigate / ✓ Arrived / ⛽ Gas stop). Gas stop swaps to a giant-type quick-log (oversized amount field, litres/odometer, Log it / Back) with a green confirmation toast.
 7. **Settings panel** (`#settings-panel`) — gear in header; feature toggles (hide Packing / Expenses / Games tabs), Backup card (export/import JSON).
 8. **App header** — title + dynamic subtitle ("3 days to go · 4 stops to go") + ⚙️ gear.
 9. **Tab bar** — fixed bottom, 4 tabs (emoji + label), blur backdrop.
